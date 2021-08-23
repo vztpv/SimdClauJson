@@ -1,5 +1,5 @@
 # SimdClauJson
-experimental json parser : modified simdjson + clauparser`s principle ( + mimalloc) 
+experimental json parser : modified simdjson/simdjson + clauparser`s principle ( + mimalloc) 
 
 # modified simdjson -> TokenArray -> Parser -> Editable Parsing Tree.
 
