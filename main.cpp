@@ -8,6 +8,7 @@
 
 
 #include <map>
+#include <unordered_map>
 #include <vector>
 #include <string>
 #include <fstream>
@@ -26,17 +27,19 @@ namespace clau {
 			double float_val;
 		};
 		std::string str_val;
+
+
+		Data() { }
+
+		Data(simdjson::internal::tape_type _type, bool _is_key, long long _number_val, std::string_view _str_val) 
+			:type(_type), is_key(_is_key), int_val(_number_val), str_val(_str_val)
+		{
+
+		}
 	};
 
-	Data Convert(const simdjson::Token& token) {
-		Data result;
-
-		result.type = token.type;
-		result.is_key = token.is_key;
-		result.int_val = token.int_val;
-		result.str_val = std::string(token.str_val);
-
-		return result;
+	inline Data Convert(const simdjson::Token& token) {
+		return Data(token.type, token.is_key, token.int_val, token.str_val);
 	}
 
 	class UserType {
@@ -86,6 +89,8 @@ namespace clau {
 
 		void LinkUserType(UserType* ut) // friend?
 		{
+			// todo - bug fix! - object : name is not emtpy, array : name is empty.
+
 			if (!ut->name.empty()) {
 				if (chk_dup.find(ut->name) != chk_dup.end()) {
 					throw "dup in LinkUserType";
@@ -98,6 +103,11 @@ namespace clau {
 			userTypeList.push_back(ut);
 
 			ut->parent = this;
+		}
+
+		UserType(std::string&& name, int type = -1) : name(std::move(name)), type(type)
+		{
+
 		}
 
 		UserType(const std::string& name = "", int type = -1) : name(name), type(type)
@@ -151,6 +161,10 @@ namespace clau {
 			return size_t(-1); // error.
 		}
 
+		size_t find_last_user_type() {
+			return userTypeList.size() - 1;
+		}
+
 		size_t find_user_type(const std::string& name) {
 			return find_user_type(name, userTypeList.size());
 		}
@@ -185,6 +199,36 @@ namespace clau {
 
 		}
 
+		void add_user_type(std::string&& name, int type) {
+			// todo - chk this->type == 0 (object) but name is empty
+			// todo - chk this->type == 1 (array) but name is not empty.
+			// todo - chk this->type == -1 .. one object or one array or data(true or false or null or string or number).
+
+			if (this->type == 0 && name.empty()) {
+				throw "Error add array-element to object in add_user_type";
+			}
+			if (this->type == 1 && !name.empty()) {
+				throw "Error add object-element to array in add_user_type";
+			}
+			if (this->type == -1 && userTypeList.size() + itemTypeList.size() >= 1) {
+				throw "Error not valid json in add_user_type";
+			}
+
+			if (!name.empty()) {
+				if (chk_dup.find(name) != chk_dup.end()) {
+					throw "dup in add_user_type";
+				}
+				else {
+					chk_dup.insert(name);
+				}
+			}
+
+			userTypeList.push_back(new UserType(std::move(name)));
+			userTypeList.back()->parent = this;
+			userTypeList.back()->type = type;
+
+		}
+
 		void add_user_type(UserType* other) {
 			// todo - chk this->type == 0 (object) but name is empty
 			// todo - chk this->type == 1 (array) but name is not empty.
@@ -213,6 +257,75 @@ namespace clau {
 		}
 
 		// add item_type in object? key = value
+		void add_item_type(std::string&& name, clau::Data&& data) {
+			// todo - chk this->type == 0 (object) but name is empty
+			// todo - chk this->type == 1 (array) but name is not empty.
+			if (this->type == 0 && name.empty()) {
+				throw "Error add array-element to object in add_item_type";
+			}
+			if (this->type == 1 && !name.empty()) {
+				throw "Error add object-element to array in add_item_type";
+			}
+			if (this->type == -1 && userTypeList.size() + itemTypeList.size() >= 1) {
+				throw "Error not valid json in add_item_type";
+			}
+
+			if (!name.empty()) {
+				if (chk_dup.find(name) != chk_dup.end()) {
+					throw "dup in add_item_type";
+				}
+				else {
+					chk_dup.insert(name);
+				}
+			}
+
+			auto iter = itemTypeList.find(name);
+			if (iter == itemTypeList.end()) {
+				itemTypeList.insert(std::make_pair(std::move(name), std::vector<clau::Data>{ std::move(data) }));
+			}
+			else if (!name.empty()) {
+				throw "Error duplicated.. in add_item_type";
+				// err .. iter->second.push_back(data);
+			}
+			else {
+				iter->second.push_back(std::move(data));
+			}
+		}
+
+		void add_item_type(const std::string& name, clau::Data&& data) {
+			// todo - chk this->type == 0 (object) but name is empty
+			// todo - chk this->type == 1 (array) but name is not empty.
+			if (this->type == 0 && name.empty()) {
+				throw "Error add array-element to object in add_item_type";
+			}
+			if (this->type == 1 && !name.empty()) {
+				throw "Error add object-element to array in add_item_type";
+			}
+			if (this->type == -1 && userTypeList.size() + itemTypeList.size() >= 1) {
+				throw "Error not valid json in add_item_type";
+			}
+
+			if (!name.empty()) {
+				if (chk_dup.find(name) != chk_dup.end()) {
+					throw "dup in add_item_type";
+				}
+				else {
+					chk_dup.insert(name);
+				}
+			}
+
+			auto iter = itemTypeList.find(name);
+			if (iter == itemTypeList.end()) {
+				itemTypeList.insert(std::make_pair((name), std::vector<clau::Data>{ std::move(data) }));
+			}
+			else if (!name.empty()) {
+				throw "Error duplicated.. in add_item_type";
+				// err .. iter->second.push_back(data);
+			}
+			else {
+				iter->second.push_back(std::move(data));
+			}
+		}
 		void add_item_type(const std::string& name, const clau::Data& data) {
 			// todo - chk this->type == 0 (object) but name is empty
 			// todo - chk this->type == 1 (array) but name is not empty.
@@ -237,17 +350,16 @@ namespace clau {
 
 			auto iter = itemTypeList.find(name);
 			if (iter == itemTypeList.end()) {
-				itemTypeList.insert(std::make_pair(name, std::vector<clau::Data>{ data }));
+				itemTypeList.insert(std::make_pair((name), std::vector<clau::Data>{ (data) }));
 			}
 			else if (!name.empty()) {
 				throw "Error duplicated.. in add_item_type";
 				// err .. iter->second.push_back(data);
 			}
 			else {
-				iter->second.push_back(data);
+				iter->second.push_back((data));
 			}
 		}
-
 		// add item_type in array? value value  ...
 		void add_item_array(std::vector<clau::Data>&& arr) {
 			if (arr.empty()) {
@@ -359,7 +471,7 @@ namespace clau {
 
 				for (auto x = _ut->begin_item_type_list(); x != _ut->end_item_type_list(); ++x) {
 					for (size_t i = 0; i < x->second.size(); ++i) {
-						_next->add_item_type(x->first, x->second[i]);
+						_next->add_item_type(x->first, std::move(x->second[i]));
 					}
 				}
 
@@ -480,7 +592,7 @@ namespace clau {
 							}
 							else {
 								for (size_t x = 0; x < varVec.size(); ++x) {
-									nestedUT[braceNum]->add_item_type((varVec[x]), (valVec[x]));
+									nestedUT[braceNum]->add_item_type(std::move(varVec[x]), std::move(valVec[x]));
 								}
 							}
 
@@ -488,8 +600,8 @@ namespace clau {
 							valVec.clear();
 						}
 
-						nestedUT[braceNum]->add_user_type(var, token_arr[token_arr_start + i].type == simdjson::internal::tape_type::START_OBJECT ? 0 : 1); // object vs array
-						class UserType* pTemp = nestedUT[braceNum]->get_user_type_list(nestedUT[braceNum]->find_user_type(var));
+						nestedUT[braceNum]->add_user_type(std::move(var), token_arr[token_arr_start + i].type == simdjson::internal::tape_type::START_OBJECT ? 0 : 1); // object vs array
+						class UserType* pTemp = nestedUT[braceNum]->get_user_type_list(nestedUT[braceNum]->find_last_user_type());
 						var.clear();
 
 						braceNum++;
@@ -501,7 +613,6 @@ namespace clau {
 
 						/// initial new nestedUT.
 						nestedUT[braceNum] = pTemp;
-						///
 
 						state = 0;
 					}
@@ -517,7 +628,7 @@ namespace clau {
 							}
 							else {
 								for (size_t x = 0; x < varVec.size(); ++x) {
-									nestedUT[braceNum]->add_item_type((varVec[x]), (valVec[x]));
+									nestedUT[braceNum]->add_item_type(std::move(varVec[x]), std::move(valVec[x]));
 								}
 							}
 
@@ -538,7 +649,7 @@ namespace clau {
 
 							for (auto x = nestedUT[braceNum]->begin_item_type_list(); x != nestedUT[braceNum]->end_item_type_list(); ++x) {
 								for (size_t i = 0; i < x->second.size(); ++i) {
-									ut.get_user_type_list(0)->add_item_type(x->first, x->second[i]);
+									ut.get_user_type_list(0)->add_item_type(x->first, std::move(x->second[i]));
 								}
 							}
 
@@ -599,7 +710,7 @@ namespace clau {
 
 			if (varVec.empty() == false) {
 				for (size_t x = 0; x < varVec.size(); ++x) {
-					nestedUT[braceNum]->add_item_type((varVec[x]), (valVec[x]));
+					nestedUT[braceNum]->add_item_type(std::move(varVec[x]), std::move(valVec[x]));
 				}
 
 
@@ -792,11 +903,11 @@ namespace clau {
 		}
 	};
 
-	bool parse(const std::unique_ptr<simdjson::Token[], simdjson::dom::Free>& tokens, size_t length, class UserType& global, int thr_num) {
+	inline bool parse(const std::unique_ptr<simdjson::Token[], simdjson::dom::Free>& tokens, size_t length, class UserType& global, int thr_num) {
 		return LoadData::_LoadData(tokens, length, global, thr_num, thr_num);
 	}
 
-	void _save(std::ostream& stream, UserType* ut, const int depth = 0) {
+	inline void _save(std::ostream& stream, UserType* ut, const int depth = 0) {
 		for (auto x = ut->begin_item_type_list(); x != ut->end_item_type_list(); ++x) {
 
 			for (size_t i = 0; i < x->second.size(); ++i) {
@@ -863,7 +974,7 @@ namespace clau {
 		}
 	}
 
-	void save(const std::string& fileName, class UserType& global) {
+	inline void save(const std::string& fileName, class UserType& global) {
 		std::ofstream outFile;
 		outFile.open(fileName, std::ios::binary); // binary!
 
@@ -878,7 +989,7 @@ int main(void)
 {
 	clau::UserType global;
 	int a, b;
-
+	int start = clock();
 	{
 		simdjson::dom::parser parser;
 		simdjson::dom::element tweets;
@@ -908,7 +1019,7 @@ int main(void)
 	b = clock();
 
 
-	std::cout << b - a << "ms\n";
+	std::cout << b - start << "ms\n";
 
 	//clau::save("output.test", global);
 
