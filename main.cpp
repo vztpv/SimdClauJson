@@ -45,7 +45,7 @@ namespace clau {
 		std::map<std::string, std::vector<clau::Data>> itemTypeList; // 
 		std::set<std::string> chk_dup;
 		std::vector<UserType*> userTypeList; // do not change to std::map.
-		int type = -1; // 0 - object, 1 - array, 2 - virtual object or virtual array, -1, -2
+		int type = -1; // 0 - object, 1 - array, 2 - virtual object, 3 - virtual array, -1, -2
 		UserType* parent = nullptr;
 
 	public:
@@ -86,8 +86,6 @@ namespace clau {
 
 		void LinkUserType(UserType* ut) // friend?
 		{
-			userTypeList.push_back(ut);
-
 			if (!ut->name.empty()) {
 				if (chk_dup.find(ut->name) != chk_dup.end()) {
 					throw "dup in LinkUserType";
@@ -96,6 +94,8 @@ namespace clau {
 					chk_dup.insert(ut->name);
 				}
 			}
+
+			userTypeList.push_back(ut);
 
 			ut->parent = this;
 		}
@@ -118,11 +118,17 @@ namespace clau {
 		}
 
 		bool is_virtual() const {
-			return type == 2;
+			return type == 2 || type == 3;
 		}
 
-		static UserType make_virtual() {
+		static UserType make_virtual_object() {
 			UserType ut("#", 2);
+
+			return ut;
+		}
+
+		static UserType make_virtual_array() {
+			UserType ut("#", 3);
 
 			return ut;
 		}
@@ -338,7 +344,7 @@ namespace clau {
 				if (ut_next && _ut == *ut_next) {
 					*ut_next = _next;
 					chk_ut_next = true;
-					std::cout << "chk ";
+					std::cout << "chk "; //
 				}
 
 				for (size_t i = 0; i < _ut->get_user_type_list_size(); ++i) {
@@ -522,7 +528,7 @@ namespace clau {
 						if (braceNum == 0) {
 							class UserType ut("", -2);
 
-							ut.add_user_type("#", 2); // json -> "var_name" = val  // clautext, # is line comment delimiter.
+							ut.add_user_type("#", token_arr[token_arr_start + i].type == simdjson::internal::tape_type::END_OBJECT? 2 : 3); // json -> "var_name" = val  // clautext, # is line comment delimiter.
 							class UserType* pTemp = ut.get_user_type_list(ut.find_user_type("#"));
 
 							for (size_t i = 0; i < nestedUT[braceNum]->get_user_type_list_size(); ++i) {
@@ -796,7 +802,7 @@ namespace clau {
 			for (size_t i = 0; i < x->second.size(); ++i) {
 
 				if (!x->first.empty()) {
-					stream << x->first << " = ";
+					stream << "\"" << x->first << "\" : ";
 				}
 
 				if (x->second[i].type == simdjson::internal::tape_type::TRUE_VALUE) {
@@ -830,15 +836,30 @@ namespace clau {
 		for (size_t i = 0; i < ut->get_user_type_list_size(); ++i) {
 			if (!ut->get_user_type_list(i)->get_name().empty()) {
 				stream << "\"" << (char*)ut->get_user_type_list(i)->get_name().c_str() << "\"";
-				stream << " = { \n";
+				if (ut->get_user_type_list(i)->is_object()) {
+					stream << " : { \n";
+				}
+				else {
+					stream << " : [ \n";
+				}
 			}
 			else {
-				stream << " { \n";
+				if (ut->get_user_type_list(i)->is_object()) {
+					stream << " { \n";
+				}
+				else {
+					stream << " [ \n";
+				}
 			}
 
 			_save(stream, ut->get_user_type_list(i), depth + 1);
 
-			stream << " } \n";
+			if (ut->get_user_type_list(i)->is_object()) {
+				stream << " } \n";
+			}
+			else {
+				stream << " ] \n";
+			}
 		}
 	}
 
@@ -855,29 +876,34 @@ namespace clau {
 
 int main(void)
 {
-	simdjson::dom::parser parser;
-	simdjson::dom::element tweets;
-
-	int a = clock();
-
-	size_t len;
-
-	tweets = parser.load("citylots.json");
-	len = parser.len();
-
-
-	int b = clock();
-
-	std::cout << b - a << "ms\n";
-
 	clau::UserType global;
+	int a, b;
 
-	a = clock();
+	{
+		simdjson::dom::parser parser;
+		simdjson::dom::element tweets;
 
-	const std::unique_ptr<simdjson::Token[], simdjson::dom::Free>& token_arr = tweets.raw_tape();
+		a = clock();
+
+		size_t len;
+
+		tweets = parser.load("citylots.json");
+		len = parser.len();
 
 
-	clau::parse(token_arr, len, global, 8);
+		b = clock();
+
+		std::cout << b - a << "ms\n";
+
+		
+
+		a = clock();
+
+		const std::unique_ptr<simdjson::Token[], simdjson::dom::Free>& token_arr = tweets.raw_tape();
+
+
+		clau::parse(token_arr, len, global, 8);
+	}
 
 	b = clock();
 
