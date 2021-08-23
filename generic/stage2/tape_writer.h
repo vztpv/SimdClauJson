@@ -9,6 +9,7 @@ struct tape_writer {
 
 	size_t count = 0;
 
+
 	/** Write a signed 64-bit value to tape. */
 	simdjson_really_inline void append_s64(int64_t value) noexcept;
 
