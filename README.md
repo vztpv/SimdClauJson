@@ -1,6 +1,6 @@
 # SimdClauJson
 experimental json parser : modified simdjson/simdjson 0.9.7 + clauparser`s principle ( + mimalloc) 
-
+(64bit, C++17~)
 # modified simdjson -> TokenArray -> Parser -> Editable Parsing Tree.
 
 # Using Other Repository...
