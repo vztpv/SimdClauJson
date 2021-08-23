@@ -9,7 +9,7 @@ https://github.com/simdjson/simdjson  Apache License 2.0.
 https://github.com/microsoft/mimalloc   MIT License
 
 # Modified simdjson
-[modified] simdjson (used as tokenizer, to get array of token - all tokens)  ( Tape : char[] -> Token[] )
+[modified] simdjson (used as tokenizer, to get array of token - all tokens)  ( Tape : uint64_t[] -> Token[] )
 
 token : {, }, [, ], string(no key), key, int_value, uint_value, float_value, true_value, false_value, null_value.
 
