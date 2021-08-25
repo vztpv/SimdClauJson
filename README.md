@@ -22,3 +22,4 @@ using std::map, std::string, std::vector.
 
 # Now Has Problem..
 need many? memory...
+bug with "" empty key.
