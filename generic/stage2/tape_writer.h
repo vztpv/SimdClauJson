@@ -89,15 +89,21 @@ simdjson_really_inline void tape_writer::append_double(double value) noexcept {
 }
 
 simdjson_really_inline void tape_writer::skip() noexcept {
-	//
+	next_tape_loc++;
+
+	count++;
 }
 
 simdjson_really_inline void tape_writer::skip_large_integer() noexcept {
-	//
+	next_tape_loc++;
+
+	count++;
 }
 
 simdjson_really_inline void tape_writer::skip_double() noexcept {
-	//
+	next_tape_loc++;
+
+	count++;
 }
 
 simdjson_really_inline void tape_writer::append(internal::tape_type t) noexcept {
