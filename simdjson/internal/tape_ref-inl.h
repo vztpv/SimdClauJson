@@ -23,22 +23,22 @@ simdjson_really_inline bool tape_ref::is_document_root() const noexcept {
 // most significant 8 bits.
 
 simdjson_really_inline bool tape_ref::is_double() const noexcept {
-    return doc->tape[json_index].type == tape_type::DOUBLE;
+    return doc->tape[json_index].get_type() == tape_type::DOUBLE;
 }
 simdjson_really_inline bool tape_ref::is_int64() const noexcept {
-    return doc->tape[json_index].type == tape_type::INT64;
+    return doc->tape[json_index].get_type() == tape_type::INT64;
 }
 simdjson_really_inline bool tape_ref::is_uint64() const noexcept {
-    return doc->tape[json_index].type == tape_type::UINT64;
+    return doc->tape[json_index].get_type() == tape_type::UINT64;
 }
 simdjson_really_inline bool tape_ref::is_false() const noexcept {
-    return doc->tape[json_index].type == tape_type::FALSE_VALUE;
+    return doc->tape[json_index].get_type() == tape_type::FALSE_VALUE;
 }
 simdjson_really_inline bool tape_ref::is_true() const noexcept {
-    return doc->tape[json_index].type == tape_type::TRUE_VALUE;
+    return doc->tape[json_index].get_type() == tape_type::TRUE_VALUE;
 }
 simdjson_really_inline bool tape_ref::is_null_on_tape() const noexcept {
-    return doc->tape[json_index].type == tape_type::NULL_VALUE;
+    return doc->tape[json_index].get_type() == tape_type::NULL_VALUE;
 }
 
 inline size_t tape_ref::after_element() const noexcept {
@@ -58,7 +58,7 @@ inline size_t tape_ref::after_element() const noexcept {
     */
 }
 simdjson_really_inline tape_type tape_ref::tape_ref_type() const noexcept {
-    return static_cast<tape_type>(doc->tape[json_index].type);
+    return static_cast<tape_type>(doc->tape[json_index].get_type());
 }
 
 template<typename T>

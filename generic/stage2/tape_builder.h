@@ -93,6 +93,9 @@ namespace stage2 {
         dom_parser.doc = &doc;
         json_iterator iter(dom_parser, STREAMING ? dom_parser.next_structural_index : 0);
         tape_builder builder(doc);
+
+        builder.tape.option = dom_parser.option; //
+
         auto x = iter.walk_document<STREAMING>(builder);
         doc.len = builder.len();
         return x;

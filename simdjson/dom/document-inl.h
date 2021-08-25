@@ -26,7 +26,7 @@ namespace dom {
     }
 
     simdjson_warn_unused
-        inline error_code document::allocate(size_t capacity) noexcept {
+        inline error_code document::allocate(size_t capacity, bool option, size_t reserve_capacity) noexcept {
         if (capacity == 0) {
             string_buf.reset();
             tape.reset();
@@ -40,11 +40,20 @@ namespace dom {
         //where capacity + 1 tape elements are
         // generated, see issue https://github.com/lemire/simdjson/issues/345
         size_t tape_capacity = SIMDJSON_ROUNDUP_N(capacity + 3, 64);
+        if (option && reserve_capacity > 0) {
+            tape_capacity = reserve_capacity; 
+        }
+        else if (!option) {
+            tape_capacity = 1;
+        }
+
         // a document with only zero-length strings... could have capacity/3 string
         // and we would need capacity/3 * 5 bytes on the string buffer
         size_t string_capacity = SIMDJSON_ROUNDUP_N(5 * capacity / 3 + SIMDJSON_PADDING, 64);
         string_buf.reset(new (std::nothrow) uint8_t[string_capacity]);
         tape.reset((Token*)calloc(tape_capacity, sizeof(Token))); //tape.reset(new (std::nothrow)Token[tape_capacity]);
+        
+        
         if (!(string_buf && tape)) {
             allocated_capacity = 0;
             string_buf.reset();

@@ -85,7 +85,7 @@ class Free {
 	  * or lower the amount of allocated memory.
 	  * Passsing zero clears the memory.
 	  */
-	 error_code allocate(size_t len) noexcept;
+	 error_code allocate(size_t len, bool option, size_t reserve_capacity) noexcept;
 	 /** @private Capacity in bytes, in terms
 	  * of how many bytes of input JSON we can
 	  * support.

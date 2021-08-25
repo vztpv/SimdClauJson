@@ -9,6 +9,7 @@ struct tape_writer {
 
 	size_t count = 0;
 
+	bool option = false;
 
 	/** Write a signed 64-bit value to tape. */
 	simdjson_really_inline void append_s64(int64_t value) noexcept;
@@ -58,74 +59,95 @@ private:
 }; // struct number_writer
 
 simdjson_really_inline void tape_writer::append_s64(int64_t value) noexcept {
-	next_tape_loc->type = internal::tape_type::INT64;
+	if (option) {
 
-	next_tape_loc->int_val = value;
+		next_tape_loc->set_type(internal::tape_type::INT64);
 
-	next_tape_loc++;
+		next_tape_loc->data = std::make_unique<TokenData>();
+		next_tape_loc->data->int_val = value;
+
+		next_tape_loc++;
+	}
 
 	count++;
 }
 
 simdjson_really_inline void tape_writer::append_u64(uint64_t value) noexcept {
-	next_tape_loc->type = internal::tape_type::UINT64;
+	if (option) {
+		next_tape_loc->set_type(internal::tape_type::UINT64);
 
-	next_tape_loc->uint_val = value;
+		next_tape_loc->data = std::make_unique<TokenData>();
+		next_tape_loc->data->uint_val = value;
 
-	next_tape_loc++;
+		next_tape_loc++;
+	}
 
 	count++;
 }
 
 /** Write a double value to tape. */
 simdjson_really_inline void tape_writer::append_double(double value) noexcept {
-	next_tape_loc->type = internal::tape_type::DOUBLE;
+	if (option) {
+		next_tape_loc->set_type(internal::tape_type::DOUBLE);
 
-	next_tape_loc->float_val = value;
-
-	next_tape_loc++;
+		next_tape_loc->data = std::make_unique<TokenData>();
+		next_tape_loc->data->float_val = value;
+	
+		next_tape_loc++;
+	}
 
 	count++;
 }
 
 simdjson_really_inline void tape_writer::skip() noexcept {
-	next_tape_loc++;
+	if (option) {
+		next_tape_loc++;
+	}
 
 	count++;
 }
 
 simdjson_really_inline void tape_writer::skip_large_integer() noexcept {
-	next_tape_loc++;
+	if (option) {
+		next_tape_loc++;
+	}
 
 	count++;
 }
 
 simdjson_really_inline void tape_writer::skip_double() noexcept {
-	next_tape_loc++;
+	if (option) {
+		next_tape_loc++;
+	}
 
 	count++;
 }
 
 simdjson_really_inline void tape_writer::append(internal::tape_type t) noexcept {
-	next_tape_loc->type = t;
+	if (option) {
+		next_tape_loc->set_type(t);
 
-	next_tape_loc++;
+		next_tape_loc++;
+	}
 
 	count++;
 }
 
 simdjson_really_inline void tape_writer::append_str(std::string_view&& str, bool key) noexcept {
+	if (option) {
 
-	next_tape_loc->str_val = str;
+		next_tape_loc->data = std::make_unique<TokenData>();
 
-	next_tape_loc->type = simdjson::internal::tape_type::STRING;
+		next_tape_loc->set_str(str.data(), str.size());
 
+		next_tape_loc->set_type(simdjson::internal::tape_type::STRING);
 
-	if (key) {
-		next_tape_loc->type = simdjson::internal::tape_type::KEY_VALUE;
+		if (key) {
+			next_tape_loc->set_type(simdjson::internal::tape_type::KEY_VALUE);
+		}
+
+		next_tape_loc++;
 	}
-
-	next_tape_loc++;
 
 	count++;
 }

@@ -126,8 +126,12 @@ public:
 	 *         - other json errors if parsing fails. You should not rely on these errors to always the same for the
 	 *           same document: they may vary under runtime dispatch (so they may vary depending on your system and hardware).
 	 */
-	inline simdjson_result<element> load(const std::string& path) & noexcept;
+	inline simdjson_result<element> load(const std::string& path, bool opton, size_t reserve_capacity) & noexcept;
 	inline simdjson_result<element> load(const std::string& path) && = delete;
+
+	inline simdjson_result<element> load(bool opton, size_t reserve_capacity) & noexcept;
+
+
 	/**
 	 * Parse a JSON document and return a temporary reference to it.
 	 *
@@ -193,11 +197,16 @@ public:
 	 *         - other json errors if parsing fails. You should not rely on these errors to always the same for the
 	 *           same document: they may vary under runtime dispatch (so they may vary depending on your system and hardware).
 	 */
-	inline simdjson_result<element> parse(const uint8_t* buf, size_t len, bool realloc_if_needed = true) & noexcept;
+	inline simdjson_result<element> parse(const uint8_t* buf, size_t len, bool realloc_if_needed = true, bool option = false, size_t reserve_capacity = 0) & noexcept;
 	inline simdjson_result<element> parse(const uint8_t* buf, size_t len, bool realloc_if_needed = true) && = delete;
 	/** @overload parse(const uint8_t *buf, size_t len, bool realloc_if_needed) */
-	simdjson_really_inline simdjson_result<element> parse(const char* buf, size_t len, bool realloc_if_needed = true) & noexcept;
+	simdjson_really_inline simdjson_result<element> parse(const char* buf, size_t len, bool realloc_if_needed = true, bool option = false, size_t reserve_capacity = 0) & noexcept;
 	simdjson_really_inline simdjson_result<element> parse(const char* buf, size_t len, bool realloc_if_needed = true) && = delete;
+
+
+	simdjson_really_inline simdjson_result<element> parse(bool option = false, size_t reserve_capacity = 0) & noexcept;
+
+
 	/** @overload parse(const uint8_t *buf, size_t len, bool realloc_if_needed) */
 	simdjson_really_inline simdjson_result<element> parse(const std::string& s) & noexcept;
 	simdjson_really_inline simdjson_result<element> parse(const std::string& s) && = delete;
@@ -252,8 +261,12 @@ public:
 	 *         - other json errors if parsing fails. You should not rely on these errors to always the same for the
 	 *           same document: they may vary under runtime dispatch (so they may vary depending on your system and hardware).
 	 */
-	inline simdjson_result<element> parse_into_document(document& doc, const uint8_t* buf, size_t len, bool realloc_if_needed = true) & noexcept;
+	inline simdjson_result<element> parse_into_document(document& doc, const uint8_t* buf, size_t len, bool realloc_if_needed = true, bool option = false, size_t reserve_capacity = 0) & noexcept;
 	inline simdjson_result<element> parse_into_document(document& doc, const uint8_t* buf, size_t len, bool realloc_if_needed = true) && = delete;
+	
+	inline simdjson_result<element> parse_into_document(document& doc, bool option = false, size_t reserve_capacity = 0) & noexcept;
+
+
 	/** @overload parse_into_document(const uint8_t *buf, size_t len, bool realloc_if_needed) */
 	simdjson_really_inline simdjson_result<element> parse_into_document(document& doc, const char* buf, size_t len, bool realloc_if_needed = true) & noexcept;
 	simdjson_really_inline simdjson_result<element> parse_into_document(document& doc, const char* buf, size_t len, bool realloc_if_needed = true) && = delete;
@@ -593,13 +606,13 @@ private:
 	 * and auto-allocate if not. This also allocates memory if needed in the
 	 * internal document.
 	 */
-	inline error_code ensure_capacity(size_t desired_capacity) noexcept;
+	inline error_code ensure_capacity(size_t desired_capacity, bool option = true, size_t reserve_capacity = 0) noexcept;
 	/**
 	 * Ensure we have enough capacity to handle at least desired_capacity bytes,
 	 * and auto-allocate if not. This also allocates memory if needed in the
 	 * provided document.
 	 */
-	inline error_code ensure_capacity(document& doc, size_t desired_capacity) noexcept;
+	inline error_code ensure_capacity(document& doc, size_t desired_capacity, bool option = true, size_t reserve_capacity = 0) noexcept;
 
 	/** Read the file into loaded_bytes */
 	inline simdjson_result<size_t> read_file(const std::string& path) noexcept;
