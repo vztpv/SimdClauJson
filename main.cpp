@@ -29,12 +29,12 @@ namespace clau {
 			double float_val;
 		};
 		std::string str_val;
-
+	//	size_t count_ut = 0, count_it = 0;
 
 		Data() : type(simdjson::internal::tape_type::NONE) { }
 
-		Data(simdjson::internal::tape_type _type, long long _number_val, std::string&& _str_val) 
-			:type(_type), int_val(_number_val), str_val(std::move(_str_val))
+		Data(simdjson::internal::tape_type _type, long long _number_val, std::string&& _str_val) //, size_t count_ut, size_t count_it)
+			:type(_type), int_val(_number_val), str_val(std::move(_str_val))//, count_ut(count_ut), count_it(count_it)
 		{
 
 		}
@@ -53,16 +53,16 @@ namespace clau {
 	inline Data Convert(const simdjson::Token& token) {
 		if (token.get_type() == simdjson::internal::tape_type::KEY_VALUE
 			|| token.get_type() == simdjson::internal::tape_type::STRING) {
-			return Data(token.get_type(), token.data? token.data->int_val : 0, std::string(token.get_str()));
+			return Data(token.get_type(), token.data.int_val, std::string(token.get_str())); // , token.data.count_ut, token.data.count_it);
 		}
-		return Data(token.get_type(), token.data? token.data->int_val : 0, "");
+		return Data(token.get_type(), token.data.int_val, ""); // , token.data.count_ut, token.data.count_it);
 	}
 
 	class UserType {
 	private:
 		clau::Data name; // equal to key
-		std::map<clau::Data, std::vector<clau::Data>> itemTypeList; // 
-		std::set<clau::Data> chk_dup;
+		std::vector<std::pair<clau::Data, clau::Data>> itemTypeList; // 
+		//std::set<clau::Data> chk_dup;
 		std::vector<UserType*> userTypeList; // do not change to std::map.
 		int type = -1; // 0 - object, 1 - array, 2 - virtual object, 3 - virtual array, -1, -2
 		UserType* parent = nullptr;
@@ -78,7 +78,7 @@ namespace clau {
 	public:
 		UserType(const UserType& other)
 			: name(other.name), itemTypeList(other.itemTypeList), userTypeList(other.userTypeList),
-			chk_dup(other.chk_dup),
+			//chk_dup(other.chk_dup),
 			type(other.type), parent(other.parent)
 		{
 			//
@@ -88,7 +88,7 @@ namespace clau {
 			name = std::move(other.name);
 			itemTypeList = std::move(other.itemTypeList);
 			userTypeList = std::move(other.userTypeList);
-			chk_dup = std::move(other.chk_dup);
+			//chk_dup = std::move(other.chk_dup);
 			type = std::move(other.type);
 			parent = std::move(other.parent);
 		}
@@ -100,7 +100,7 @@ namespace clau {
 			name = std::move(other.name);
 			itemTypeList = std::move(other.itemTypeList);
 			userTypeList = std::move(other.userTypeList);
-			chk_dup = std::move(other.chk_dup);
+		//	chk_dup = std::move(other.chk_dup);
 			type = std::move(other.type);
 			parent = std::move(other.parent);
 
@@ -113,14 +113,14 @@ namespace clau {
 		void LinkUserType(UserType* ut) // friend?
 		{
 
-			if (!ut->name.str_val.empty()) {
-				if (chk_dup.find(ut->name) != chk_dup.end()) {
-					throw "dup in LinkUserType";
-				}
-				else {
-					chk_dup.insert(ut->name);
-				}
-			}
+			//if (!ut->name.str_val.empty()) {
+			//	if (chk_dup.find(ut->name) != chk_dup.end()) {
+			///		throw "dup in LinkUserType";
+			//	}
+			//	else {
+			//		chk_dup.insert(ut->name);
+			//	}
+			//}
 
 			userTypeList.push_back(ut);
 
@@ -180,26 +180,16 @@ namespace clau {
 				throw "Error not valid json in add_object_element";
 			}
 
-			if (!name.str_val.empty()) {
-				if (chk_dup.find(name) != chk_dup.end()) {
-					throw "dup in add_object_element";
-				}
-				else {
-					chk_dup.insert(name);
-				}
-			}
+			//if (!name.str_val.empty()) {
+			//	if (chk_dup.find(name) != chk_dup.end()) {
+			//		throw "dup in add_object_element";
+			//	}
+			//	else {
+			//		chk_dup.insert(name);
+			//	}
+		//	}
 
-			auto iter = itemTypeList.find(name);
-			if (iter == itemTypeList.end()) {
-				itemTypeList.insert(std::make_pair((name), std::vector<clau::Data>{ (data) }));
-			}
-			else if (!name.str_val.empty()) {
-				throw "Error duplicated.. in add_object_element";
-				// err .. iter->second.push_back(data);
-			}
-			else {
-				iter->second.push_back((data));
-			}
+			itemTypeList.push_back({ name, data });
 		}
 
 		void add_array_element(const clau::Data& data) {
@@ -213,13 +203,10 @@ namespace clau {
 				throw "Error not valid json in add_array_element";
 			}
 
-			auto iter = itemTypeList.find(Data());
-			if (iter == itemTypeList.end()) {
-				itemTypeList.insert(std::make_pair(Data(), std::vector<clau::Data>{ (data) }));
-			}
-			else {
-				iter->second.push_back((data));
-			}
+			Data key;
+			key.type = simdjson::internal::tape_type::KEY_VALUE;
+
+			itemTypeList.push_back({ std::move(key), data });
 		}
 
 		void remove_all() {
@@ -231,7 +218,7 @@ namespace clau {
 			}
 			userTypeList = std::vector<UserType*>();
 			itemTypeList.clear();
-			chk_dup.clear();
+			//chk_dup.clear();
 		}
 
 		void add_object_with_key(UserType* object) {
@@ -249,14 +236,14 @@ namespace clau {
 				throw "Error not valid json in add_object_with_key";
 			}
 
-			if (!name.str_val.empty()) {
-				if (chk_dup.find(name) != chk_dup.end()) {
-					throw "dup in add_object_with_key";
-				}
-				else {
-					chk_dup.insert(name);
-				}
-			}
+			//if (!name.str_val.empty()) {
+			///	if (chk_dup.find(name) != chk_dup.end()) {
+			///		throw "dup in add_object_with_key";
+			//	}
+			///	else {
+			//		chk_dup.insert(name);
+			///	}
+			//}
 
 			userTypeList.push_back(new UserType(name));
 			userTypeList.back()->parent = this;
@@ -278,15 +265,15 @@ namespace clau {
 				throw "Error not valid json in add_array_with_key";
 			}
 
-			if (!name.str_val.empty()) {
-				if (chk_dup.find(name) != chk_dup.end()) {
-					throw "dup in add_array_with_key";
-				}
-				else {
-					chk_dup.insert(name);
-				}
-			}
-
+			//if (!name.str_val.empty()) {
+			//	if (chk_dup.find(name) != chk_dup.end()) {
+			///		throw "dup in add_array_with_key";
+			//	}
+			//	else {
+			//		chk_dup.insert(name);
+			//	}
+		//	}
+		//
 			userTypeList.push_back(new UserType(name));
 			userTypeList.back()->parent = this;
 			userTypeList.back()->type = type;
@@ -307,14 +294,14 @@ namespace clau {
 				throw "Error not valid json in add_object_with_no_key";
 			}
 
-			if (!name.str_val.empty()) {
-				if (chk_dup.find(name) != chk_dup.end()) {
-					throw "dup in add_object_with_no_key";
-				}
-				else {
-					chk_dup.insert(name);
-				}
-			}
+			//if (!name.str_val.empty()) {
+			//	if (chk_dup.find(name) != chk_dup.end()) {
+			//		throw "dup in add_object_with_no_key";
+			//	}
+			//	else {
+			//		chk_dup.insert(name);
+			//	}
+			//}
 
 			userTypeList.push_back(new UserType(name));
 			userTypeList.back()->parent = this;
@@ -336,21 +323,29 @@ namespace clau {
 				throw "Error not valid json in add_array_with_no_key";
 			}
 
-			if (!name.str_val.empty()) {
-				if (chk_dup.find(name) != chk_dup.end()) {
-					throw "dup in add_array_with_no_key";
-				}
-				else {
-					chk_dup.insert(name);
-				}
-			}
+			//if (!name.str_val.empty()) {
+				//if (chk_dup.find(name) != chk_dup.end()) {
+			//		throw "dup in add_array_with_no_key";
+			//	}
+			///	else {
+			//		chk_dup.insert(name);
+			//	}
+		//	}
 
 			userTypeList.push_back(new UserType(name));
 			userTypeList.back()->parent = this;
 			userTypeList.back()->type = type;
 		}
 
-		
+		size_t item_type_list_size()const {
+			return itemTypeList.size();
+		}
+
+		void reserve_item_type_list(size_t len) {
+			if (len > 0) {
+				itemTypeList.reserve(len);
+			}
+		}
 
 	private:
 		static UserType make_none() {
@@ -423,14 +418,14 @@ namespace clau {
 				throw "Error not valid json in add_user_type";
 			}
 
-			if (!name.str_val.empty()) {
-				if (chk_dup.find(name) != chk_dup.end()) {
-					throw "dup in add_user_type";
-				}
-				else {
-					chk_dup.insert(name);
-				}
-			}
+			//if (!name.str_val.empty()) {
+			//	if (chk_dup.find(name) != chk_dup.end()) {
+			//		throw "dup in add_user_type";
+			//	}
+			//	else {
+			//		chk_dup.insert(name);
+			//	}
+		//	}
 
 			userTypeList.push_back(new UserType(name));
 			userTypeList.back()->parent = this;
@@ -454,15 +449,15 @@ namespace clau {
 			if (this->type == -1 && userTypeList.size() + itemTypeList.size() >= 1) {
 				throw "Error not valid json in add_user_type";
 			}
-
-			if (!name.str_val.empty()) {
-				if (chk_dup.find(name) != chk_dup.end()) {
-					throw "dup in add_user_type";
-				}
-				else {
-					chk_dup.insert(name);
-				}
-			}
+//
+			//if (!name.str_val.empty()) {
+		//		if (chk_dup.find(name) != chk_dup.end()) {
+			//		throw "dup in add_user_type";
+			//	}
+		//		else {
+		//			chk_dup.insert(name);
+		//		}
+		//	}
 
 			userTypeList.push_back(new UserType(std::move(name)));
 			userTypeList.back()->parent = this;
@@ -479,14 +474,14 @@ namespace clau {
 			}
 
 
-			if (!other->name.str_val.empty()) {
-				if (chk_dup.find(other->name) != chk_dup.end()) {
-					throw "dup in add_user_type";
-				}
-				else {
-					chk_dup.insert(other->name);
-				}
-			}
+		//	if (!other->name.str_val.empty()) {
+			//	if (chk_dup.find(other->name) != chk_dup.end()) {
+			//		throw "dup in add_user_type";
+			//	}
+			//	else {
+			//		chk_dup.insert(other->name);
+			//	}
+		//	}
 
 			userTypeList.push_back(other);
 			other->parent = this;
@@ -509,26 +504,16 @@ namespace clau {
 				throw "Error not valid json in add_item_type";
 			}
 
-			if (!name.str_val.empty()) {
-				if (chk_dup.find(name) != chk_dup.end()) {
-					throw "dup in add_item_type";
-				}
-				else {
-					chk_dup.insert(name);
-				}
-			}
+		//	if (!name.str_val.empty()) {
+			//	if (chk_dup.find(name) != chk_dup.end()) {
+			//		throw "dup in add_item_type";
+			//	}
+		//		else {
+		//			chk_dup.insert(name);
+		//		}
+		//	}
 
-			auto iter = itemTypeList.find(name);
-			if (iter == itemTypeList.end()) {
-				itemTypeList.insert(std::make_pair(std::move(name), std::vector<clau::Data>{ std::move(data) }));
-			}
-			else if (!name.str_val.empty()) {
-				throw "Error duplicated.. in add_item_type";
-				// err .. iter->second.push_back(data);
-			}
-			else {
-				iter->second.push_back(std::move(data));
-			}
+			itemTypeList.push_back({std::move(name), std::move(data)});
 		}
 
 		void add_item_type(const Data& name, clau::Data&& data) {
@@ -547,27 +532,17 @@ namespace clau {
 			if (this->type == -1 && userTypeList.size() + itemTypeList.size() >= 1) {
 				throw "Error not valid json in add_item_type";
 			}
+//
+			//if (!name.str_val.empty()) {
+			//	if (chk_dup.find(name) != chk_dup.end()) {
+			//		throw "dup in add_item_type";
+			//	}
+			//	else {
+			//		chk_dup.insert(name);
+			//	}
+			//}
 
-			if (!name.str_val.empty()) {
-				if (chk_dup.find(name) != chk_dup.end()) {
-					throw "dup in add_item_type";
-				}
-				else {
-					chk_dup.insert(name);
-				}
-			}
-
-			auto iter = itemTypeList.find(name);
-			if (iter == itemTypeList.end()) {
-				itemTypeList.insert(std::make_pair((name), std::vector<clau::Data>{ std::move(data) }));
-			}
-			else if (!name.str_val.empty()) {
-				throw "Error duplicated.. in add_item_type";
-				// err .. iter->second.push_back(data);
-			}
-			else {
-				iter->second.push_back(std::move(data));
-			}
+			itemTypeList.push_back({ name, std::move(data) });
 		}
 		void add_item_type(const Data& name, const clau::Data& data) {
 			// todo - chk this->type == 0 (object) but name is empty
@@ -586,70 +561,35 @@ namespace clau {
 				throw "Error not valid json in add_item_type";
 			}
 
-			if (!name.str_val.empty()) {
-				if (chk_dup.find(name) != chk_dup.end()) {
-					throw "dup in add_item_type";
-				}
-				else {
-					chk_dup.insert(name);
-				}
-			}
+			//if (!name.str_val.empty()) {
+				//if (chk_dup.find(name) != chk_dup.end()) {
+				//	throw "dup in add_item_type";
+			//	}
+			//	else {
+			///		chk_dup.insert(name);
+			//	}
+		//	}
 
-			auto iter = itemTypeList.find(name);
-			if (iter == itemTypeList.end()) {
-				itemTypeList.insert(std::make_pair((name), std::vector<clau::Data>{ (data) }));
-			}
-			else if (!name.str_val.empty()) {
-				throw "Error duplicated.. in add_item_type";
-				// err .. iter->second.push_back(data);
-			}
-			else {
-				iter->second.push_back((data));
-			}
+			itemTypeList.push_back({ name, data });
 		}
-		// add item_type in array? value value  ...
-		void add_item_array(std::vector<clau::Data>&& arr) {
-			if (arr.empty()) {
-				return; // throw error?
-			}
-
-			if (is_object()) {
-				throw "Error not valid json in add_item_type";
-			}
-
-			if (this->type == 0) {
-				throw "Error add array-element to object in add_item_array";
-			}
-			if (this->type == -1 && userTypeList.size() + itemTypeList.size() + arr.size() > 1) {
-				throw "Error not valid json in add_item_array";
-			}
-
-			auto iter = itemTypeList.find(Data());
-
-			if (iter == itemTypeList.end()) {
-				itemTypeList.insert(std::make_pair(Data(), std::vector<clau::Data>{}));
-				iter = itemTypeList.find(Data());
-			}
+		
 
 
-
-			if (iter->second.empty()) {
-				iter->second = std::move(arr);
-			}
-			else {
-				iter->second.reserve(iter->second.size() + arr.size());
-
-				for (size_t i = 0; i < arr.size(); ++i) {
-					iter->second.push_back(std::move(arr[i]));
+		clau::Data& get_item_type_list(const Data& name) {
+			for (size_t i = itemTypeList.size(); i > 0; --i) {
+				if (name == itemTypeList[i].first) {
+					return itemTypeList[i].second;
 				}
 			}
+			throw "NOT EXIST in get_item_type_list";
 		}
-
-		std::vector<clau::Data>& get_item_type_list(const Data& name) {
-			return itemTypeList.at(name);
-		}
-		const std::vector<clau::Data>& get_item_type_list(const Data& name) const {
-			return itemTypeList.at(name);
+		const clau::Data& get_item_type_list(const Data& name) const {
+			for (size_t i = itemTypeList.size(); i > 0; --i) {
+				if (name == itemTypeList[i].first) {
+					return itemTypeList[i].second;
+				}
+			}
+			throw "NOT EXIST in get_item_type_list";
 		}
 
 		UserType*& get_user_type_list(const size_t idx) {
@@ -663,7 +603,9 @@ namespace clau {
 		}
 
 		void reserve_user_type_list(size_t len) {
-			userTypeList.reserve(len);
+			if (len > 0) {
+				userTypeList.reserve(len);
+			}
 		}
 
 		UserType* get_parent() {
@@ -679,7 +621,7 @@ namespace clau {
 			}
 			userTypeList = std::vector<UserType*>();
 			itemTypeList.clear();
-			chk_dup.clear();
+			//chk_dup.clear();
 		}
 
 		friend class LoadData;
@@ -723,9 +665,7 @@ namespace clau {
 				}
 
 				for (auto x = _ut->begin_item_type_list(); x != _ut->end_item_type_list(); ++x) {
-					for (size_t i = 0; i < x->second.size(); ++i) {
-						_next->add_item_type(x->first, std::move(x->second[i]));
-					}
+					_next->add_item_type(std::move(x->first), std::move(x->second));
 				}
 
 				_ut->remove();
@@ -789,14 +729,10 @@ namespace clau {
 						token_arr[token_arr_start + i].get_type() == simdjson::internal::tape_type::START_ARRAY) { // object start, array start
 						
 						if (!varVec.empty()) {
+							nestedUT[braceNum]->reserve_item_type_list(nestedUT[braceNum]->item_type_list_size() + varVec.size());
 
-							if (varVec[0].str_val.empty()) {
-								nestedUT[braceNum]->add_item_array(std::move(valVec));
-							}
-							else {
-								for (size_t x = 0; x < varVec.size(); ++x) {
-									nestedUT[braceNum]->add_item_type(std::move(varVec[x]), std::move(valVec[x]));
-								}
+							for (size_t x = 0; x < varVec.size(); ++x) {
+								nestedUT[braceNum]->add_item_type(std::move(varVec[x]), std::move(valVec[x]));
 							}
 
 							varVec.clear();
@@ -806,6 +742,9 @@ namespace clau {
 						nestedUT[braceNum]->add_user_type(std::move(var), token_arr[token_arr_start + i].get_type() == simdjson::internal::tape_type::START_OBJECT ? 0 : 1); // object vs array
 						class UserType* pTemp = nestedUT[braceNum]->get_user_type_list(nestedUT[braceNum]->find_last_user_type());
 						var = Data();
+						
+				//		pTemp->reserve_user_type_list(token_arr[token_arr_start + i].data.count_ut);
+				//		pTemp->reserve_item_type_list(token_arr[token_arr_start + i].data.count_it);
 
 						braceNum++;
 
@@ -826,15 +765,12 @@ namespace clau {
 						state = 0;
 
 						if (!varVec.empty()) {
-
-							if (varVec[0].str_val.empty()) {
-								nestedUT[braceNum]->add_item_array(std::move(valVec));
+							nestedUT[braceNum]->reserve_item_type_list(nestedUT[braceNum]->item_type_list_size() + varVec.size());
+							
+							for (size_t x = 0; x < varVec.size(); ++x) {
+								nestedUT[braceNum]->add_item_type(std::move(varVec[x]), std::move(valVec[x]));
 							}
-							else {
-								for (size_t x = 0; x < varVec.size(); ++x) {
-									nestedUT[braceNum]->add_item_type(std::move(varVec[x]), std::move(valVec[x]));
-								}
-							}
+							
 							
 							varVec.clear();
 							valVec.clear();
@@ -855,9 +791,7 @@ namespace clau {
 							}
 
 							for (auto x = nestedUT[braceNum]->begin_item_type_list(); x != nestedUT[braceNum]->end_item_type_list(); ++x) {
-								for (size_t i = 0; i < x->second.size(); ++i) {
-									ut.get_user_type_list(0)->add_item_type(x->first, std::move(x->second[i]));
-								}
+								ut.get_user_type_list(0)->add_item_type(std::move(x->first), std::move(x->second));
 							}
 
 							nestedUT[braceNum]->remove();
@@ -1115,38 +1049,35 @@ namespace clau {
 		static void _save(std::ostream& stream, UserType* ut, const int depth = 0) {
 			for (auto x = ut->begin_item_type_list(); x != ut->end_item_type_list(); ++x) {
 
-				for (size_t i = 0; i < x->second.size(); ++i) {
+			
 
 					if (!x->first.str_val.empty()) {
 						stream << "\"" << x->first.str_val << "\" : ";
 					}
 
-					if (x->second[i].type == simdjson::internal::tape_type::TRUE_VALUE) {
+					if (x->second.type == simdjson::internal::tape_type::TRUE_VALUE) {
 						stream << "true";
 					}
-					else if (x->second[i].type == simdjson::internal::tape_type::FALSE_VALUE) {
+					else if (x->second.type == simdjson::internal::tape_type::FALSE_VALUE) {
 						stream << "false";
 					}
-					else if (x->second[i].type == simdjson::internal::tape_type::DOUBLE) {
-						stream << (x->second[i].float_val);
+					else if (x->second.type == simdjson::internal::tape_type::DOUBLE) {
+						stream << (x->second.float_val);
 					}
-					else if (x->second[i].type == simdjson::internal::tape_type::INT64) {
-						stream << x->second[i].int_val;
+					else if (x->second.type == simdjson::internal::tape_type::INT64) {
+						stream << x->second.int_val;
 					}
-					else if (x->second[i].type == simdjson::internal::tape_type::UINT64) {
-						stream << x->second[i].uint_val;
+					else if (x->second.type == simdjson::internal::tape_type::UINT64) {
+						stream << x->second.uint_val;
 					}
-					else if (x->second[i].type == simdjson::internal::tape_type::NULL_VALUE) {
+					else if (x->second.type == simdjson::internal::tape_type::NULL_VALUE) {
 						stream << "null ";
 					}
-					else if (x->second[i].type == simdjson::internal::tape_type::STRING) {
-						stream << "\"" << x->second[i].str_val << "\"";
+					else if (x->second.type == simdjson::internal::tape_type::STRING) {
+						stream << "\"" << x->second.str_val << "\"";
 					}
 
 					stream << " ";
-
-
-				}
 			}
 
 			for (size_t i = 0; i < ut->get_user_type_list_size(); ++i) {
