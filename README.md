@@ -18,8 +18,8 @@ I want to use this to make a "Json Explorer".
 
 Need to add, remove, update data easily.
 
-using std::map, std::string, std::vector.
+using std::string, std::vector.
 
 # Now Has Problem..
 need many? memory...
-bug with "" empty key.
+need more tests.
