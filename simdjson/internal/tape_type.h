@@ -36,6 +36,7 @@ public:
         size_t str_len;
     };
     const char* str_ptr = nullptr;
+    //long long count_ut = 0, count_it = 0;
 
 public:
     void set_str(const char* str, size_t len) {
@@ -51,7 +52,7 @@ public:
 class Token {
 public:
     uint8_t type_or_is_key = 0;
-    std::unique_ptr<TokenData> data;
+    TokenData data;
 
 public:
     bool is_key() const {
@@ -76,16 +77,12 @@ public:
     }
 
     void set_str(const char* str, size_t len) {
-        if (data) {
-            data->set_str(str, len);
-        }
+        data.set_str(str, len);
     }
 
     std::string_view get_str() const {
-        if (data) {
-            return data->get_str();
-        }
-        return std::string_view("");
+        return data.get_str();
+
     }
 };
 
