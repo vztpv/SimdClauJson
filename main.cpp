@@ -31,7 +31,7 @@ namespace clau {
 		std::string str_val;
 	//	size_t count_ut = 0, count_it = 0;
 
-		Data() : type(simdjson::internal::tape_type::NONE) { }
+		Data() : type(simdjson::internal::tape_type::NONE), int_val(0) { }
 
 		Data(simdjson::internal::tape_type _type, long long _number_val, std::string&& _str_val) //, size_t count_ut, size_t count_it)
 			:type(_type), int_val(_number_val), str_val(std::move(_str_val))//, count_ut(count_ut), count_it(count_it)
@@ -40,13 +40,31 @@ namespace clau {
 		}
 
 		bool operator==(const Data& other) const {
-			//
-			return this->str_val == other.str_val;
+			if (this->type == other.type) {
+				switch (this->type) {
+				case simdjson::internal::tape_type::KEY_VALUE:
+					return this->str_val == other.str_val;
+					break;
+				case simdjson::internal::tape_type::STRING:
+					return this->str_val == other.str_val;
+					break;
+				}
+			}
+			return false;
 		}
 
 		bool operator<(const Data& other) const {
-			//
-			return this->str_val < other.str_val;
+			if (this->type == other.type) {
+				switch (this->type) {
+				case simdjson::internal::tape_type::KEY_VALUE:
+					return this->str_val < other.str_val;
+					break;
+				case simdjson::internal::tape_type::STRING:
+					return this->str_val < other.str_val;
+					break;
+				}
+			}
+			return false;
 		}
 	};
 
@@ -68,6 +86,8 @@ namespace clau {
 		UserType* parent = nullptr;
 
 	public:
+		inline const static size_t npos = -1;
+		// chk type?
 		bool operator<(const UserType& other) const {
 			return name.str_val < other.name.str_val;
 		}
@@ -173,6 +193,10 @@ namespace clau {
 			// todo - chk this->type == 0 (object) but name is empty
 			// todo - chk this->type == 1 (array) but name is not empty.
 
+			if (!name.is_key()) {
+				throw "Error name is not key in add_object_element";
+			}
+
 			if (this->type == 1) {
 				throw "Error add object element to array in add_object_element ";
 			}
@@ -203,10 +227,10 @@ namespace clau {
 				throw "Error not valid json in add_array_element";
 			}
 
-			Data key;
-			key.type = simdjson::internal::tape_type::KEY_VALUE;
+			Data temp;
+			temp.type = simdjson::internal::tape_type::STRING;
 
-			itemTypeList.push_back({ std::move(key), data });
+			itemTypeList.push_back({ std::move(temp), data });
 		}
 
 		void remove_all() {
@@ -273,10 +297,10 @@ namespace clau {
 			//		chk_dup.insert(name);
 			//	}
 		//	}
-		//
-			userTypeList.push_back(new UserType(name));
-			userTypeList.back()->parent = this;
-			userTypeList.back()->type = type;
+//
+userTypeList.push_back(new UserType(name));
+userTypeList.back()->parent = this;
+userTypeList.back()->type = type;
 		}
 
 		void add_object_with_no_key(UserType* object) {
@@ -286,7 +310,7 @@ namespace clau {
 				throw "Error in add_object_with_no_key";
 			}
 
-			if (is_array()) {
+			if (is_object()) {
 				throw "Error in add_object_with_no_key";
 			}
 
@@ -315,7 +339,7 @@ namespace clau {
 				throw "Error in add_array_with_no_key";
 			}
 
-			if (is_array()) {
+			if (is_object()) {
 				throw "Error in add_array_with_no_key";
 			}
 
@@ -337,14 +361,64 @@ namespace clau {
 			userTypeList.back()->type = type;
 		}
 
-		size_t item_type_list_size()const {
-			return itemTypeList.size();
+		void reserve_item_type_list(size_t len) {
+			itemTypeList.reserve(len);
 		}
 
-		void reserve_item_type_list(size_t len) {
-			if (len > 0) {
-				itemTypeList.reserve(len);
+		void reserve_user_type_list(size_t len) {
+			userTypeList.reserve(len);
+		}
+
+		std::pair<clau::Data, clau::Data>& item_type_list(size_t idx) {
+			return itemTypeList[idx];
+		}
+		const std::pair<clau::Data, clau::Data>& item_type_list(size_t idx) const {
+			return itemTypeList[idx];
+		}
+		UserType* user_type_list(size_t idx) {
+			return userTypeList[idx];
+		}
+		const UserType* user_type_list(size_t idx) const {
+			return userTypeList[idx];
+		}
+		size_t item_type_list_size() const {
+			return itemTypeList.size();
+		}
+		size_t user_type_list_size() const {
+			return userTypeList.size();
+		}
+		size_t find_item_type(const Data& key) const {
+			if (!key.is_key()) {
+				return UserType::npos;
 			}
+
+			for (size_t i = item_type_list_size(); i > 0; --i) {
+				if (itemTypeList[i - 1].first == key) {
+					return i - 1;
+				}
+			}
+
+			return UserType::npos;
+		}
+		size_t find_user_type(const Data& key) const {
+			if (!key.is_key()) {
+				return UserType::npos;
+			}
+
+			for (size_t i = item_type_list_size(); i > 0; --i) {
+				if (userTypeList[i - 1]->name == key) {
+					return i - 1;
+				}
+			}
+
+			return UserType::npos;
+		}
+		void remove_item_type(size_t idx) {
+			itemTypeList.erase(itemTypeList.begin() + idx);
+		}
+		void remove_user_type(size_t idx) {
+			delete userTypeList[idx];
+			userTypeList.erase(userTypeList.begin() + idx);
 		}
 
 	private:
@@ -577,16 +651,16 @@ namespace clau {
 
 		clau::Data& get_item_type_list(const Data& name) {
 			for (size_t i = itemTypeList.size(); i > 0; --i) {
-				if (name == itemTypeList[i].first) {
-					return itemTypeList[i].second;
+				if (name == itemTypeList[i - 1].first) {
+					return itemTypeList[i - 1].second;
 				}
 			}
 			throw "NOT EXIST in get_item_type_list";
 		}
 		const clau::Data& get_item_type_list(const Data& name) const {
 			for (size_t i = itemTypeList.size(); i > 0; --i) {
-				if (name == itemTypeList[i].first) {
-					return itemTypeList[i].second;
+				if (name == itemTypeList[i - 1].first) {
+					return itemTypeList[i - 1].second;
 				}
 			}
 			throw "NOT EXIST in get_item_type_list";
@@ -602,12 +676,7 @@ namespace clau {
 			return userTypeList.size();
 		}
 
-		void reserve_user_type_list(size_t len) {
-			if (len > 0) {
-				userTypeList.reserve(len);
-			}
-		}
-
+		
 		UserType* get_parent() {
 			return parent;
 		}
@@ -995,7 +1064,7 @@ namespace clau {
 					}
 
 					// Merge
-				//	try 
+					try 
 					{
 						if (__global[0].get_user_type_list_size() > 0 && __global[0].get_user_type_list(0)->is_virtual()) {
 							std::cout << "not valid file1\n";
@@ -1025,9 +1094,9 @@ namespace clau {
 							}
 						}
 					}
-					//catch (...) {
-					//	throw "in Merge, error";
-					//}
+					catch (...) {
+						throw "in Merge, error";
+					}
 
 					before_next = next.back();
 
@@ -1135,7 +1204,7 @@ int main(int argc, char* argv[])
 		simdjson::dom::parser parser;
 
 		
-		auto tweets = parser.load(argv[1], false, 0);
+		auto tweets = parser.load(argv[1], true, 0);
 		if (tweets.error() != simdjson::error_code::SUCCESS) {
 			std::cout << tweets.error() << " ";
 			return 1;
@@ -1147,7 +1216,7 @@ int main(int argc, char* argv[])
 
 		std::cout << b - a << "ms\n";
 
-
+		/*
 		std::cout << "len " << len << "\n";
 		tweets = parser.load(true, len);
 		
@@ -1157,7 +1226,7 @@ int main(int argc, char* argv[])
 		}
 
 		len = parser.len();
-
+		*/
 		b = clock();
 
 		std::cout << b - a << "ms\n";
@@ -1176,7 +1245,7 @@ int main(int argc, char* argv[])
 
 	std::cout << b - start << "ms\n";
 
-	//clau::save("output.test", global);
+	//clau::LoadData::save("output.test", global);
 
 
 	return 0;
