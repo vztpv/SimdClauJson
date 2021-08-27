@@ -36,7 +36,7 @@ public:
         size_t str_len;
     };
     const char* str_ptr = nullptr;
-    //long long count_ut = 0, count_it = 0;
+    long long count_ut = 0, count_it = 0;
 
 public:
     void set_str(const char* str, size_t len) {
@@ -56,24 +56,14 @@ public:
 
 public:
     bool is_key() const {
-        return type_or_is_key & 1;
+        return type_or_is_key == (uint8_t)internal::tape_type::KEY_VALUE;
     }
-    void set_is_key(bool chk) {
-        if (chk) {
-            type_or_is_key = ((type_or_is_key >> 1) << 1) | 1;
-        }
-        else {
-            type_or_is_key = ((type_or_is_key >> 1) << 1) | 0;
-        }
-    }
+
     internal::tape_type get_type() const {
-        return (internal::tape_type)(type_or_is_key >> 1);
+        return (internal::tape_type)(type_or_is_key);
     }
     void set_type(internal::tape_type type) {
-        bool has_key = is_key();
-
-        type_or_is_key = (uint8_t(type)) << 1;
-        type_or_is_key += has_key ? 1 : 0;
+        type_or_is_key = (uint8_t)type;
     }
 
     void set_str(const char* str, size_t len) {
