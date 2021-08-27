@@ -6,6 +6,8 @@ namespace stage2 {
 struct tape_writer {
 	/** The next place to write to tape */
 	Token* next_tape_loc;
+	
+	Token* start;
 
 	size_t count = 0;
 
@@ -139,22 +141,36 @@ simdjson_really_inline void tape_writer::append(internal::tape_type t) noexcept 
 	if (option) {
 		next_tape_loc->set_type(t);
 
+
 		/// todo
-	/*	if (t == internal::tape_type::START_ARRAY || t == internal::tape_type::START_OBJECT) {
+		if (t == internal::tape_type::START_ARRAY || t == internal::tape_type::START_OBJECT) {
+			// before value is key?
+			if (next_tape_loc > start && (next_tape_loc - 1)->is_key()) {
+				count2 += 1;
+			}
+
 			if (!_stack.empty()) {
 				_stack.back()->data.count_ut++;
-				_stack.back()->data.count_it += count2 + 1;
+				_stack.back()->data.count_it += count2;
 			}
 			_stack.push_back(next_tape_loc);
-			count2 = -1;
+			count2 = 0;
+			next_tape_loc++;
+			count++;
+			return;
 		}
 		else if (t == internal::tape_type::END_ARRAY || t == internal::tape_type::END_OBJECT) {
-			_stack.back()->data.count_it += count2 + 1;
+			_stack.back()->data.count_it += count2;
 
-			count2 = -1;
+			next_tape_loc->data.uint_val = _stack.back() - this->start;
+			
 			_stack.pop_back();
-		]*/
 
+			count2 = 0;
+			next_tape_loc++;
+			count++;
+			return;
+		}
 		next_tape_loc++;
 	}
 
@@ -173,6 +189,7 @@ simdjson_really_inline void tape_writer::append_str(std::string_view str, bool k
 
 		if (key) {
 			next_tape_loc->set_type(simdjson::internal::tape_type::KEY_VALUE);
+			count2--;
 		}
 
 		next_tape_loc++;

@@ -145,9 +145,14 @@ namespace stage2 {
         return SUCCESS;
     }
 
-    simdjson_really_inline tape_builder::tape_builder(dom::document& doc) noexcept : tape{ doc.tape.get() }, current_string_buf_loc{ doc.string_buf.get() } {}
+    simdjson_really_inline tape_builder::tape_builder(dom::document& doc) noexcept : tape{ doc.tape.get(), doc.tape.get() }, current_string_buf_loc{ doc.string_buf.get() } {}
 
     simdjson_warn_unused simdjson_really_inline error_code tape_builder::visit_string(json_iterator& iter, const uint8_t* value, bool key) noexcept {
+        if (!tape.option) {
+            tape.count++;
+            return SUCCESS;
+        }
+        
         iter.log_value(key ? "key" : "string");
         uint8_t* dst = on_start_string(iter);
         uint8_t* start = dst;
@@ -165,15 +170,25 @@ namespace stage2 {
     }
 
     simdjson_warn_unused simdjson_really_inline error_code tape_builder::visit_root_string(json_iterator& iter, const uint8_t* value) noexcept {
-        return visit_string(iter, value);
+        if (!tape.option) {
+            tape.count++;
+            return SUCCESS;
+        }return visit_string(iter, value);
     }
 
     simdjson_warn_unused simdjson_really_inline error_code tape_builder::visit_number(json_iterator& iter, const uint8_t* value) noexcept {
-        iter.log_value("number");
+        if (!tape.option) {
+            tape.count++;
+            return SUCCESS;
+        }iter.log_value("number");
         return numberparsing::parse_number(value, tape);
     }
 
     simdjson_warn_unused simdjson_really_inline error_code tape_builder::visit_root_number(json_iterator& iter, const uint8_t* value) noexcept {
+        if (!tape.option) {
+            tape.count++;
+            return SUCCESS;
+        }
         //
         // We need to make a copy to make sure that the string is space terminated.
         // This is not about padding the input, which should already padded up
@@ -196,42 +211,60 @@ namespace stage2 {
     }
 
     simdjson_warn_unused simdjson_really_inline error_code tape_builder::visit_true_atom(json_iterator& iter, const uint8_t* value) noexcept {
-        iter.log_value("true");
+        if (!tape.option) {
+            tape.count++;
+            return SUCCESS;
+        } iter.log_value("true");
         if (!atomparsing::is_valid_true_atom(value)) { return T_ATOM_ERROR; }
         tape.append(internal::tape_type::TRUE_VALUE);
         return SUCCESS;
     }
 
     simdjson_warn_unused simdjson_really_inline error_code tape_builder::visit_root_true_atom(json_iterator& iter, const uint8_t* value) noexcept {
-        iter.log_value("true");
+        if (!tape.option) {
+            tape.count++;
+            return SUCCESS;
+        }iter.log_value("true");
         if (!atomparsing::is_valid_true_atom(value, iter.remaining_len())) { return T_ATOM_ERROR; }
         tape.append(internal::tape_type::TRUE_VALUE);
         return SUCCESS;
     }
 
     simdjson_warn_unused simdjson_really_inline error_code tape_builder::visit_false_atom(json_iterator& iter, const uint8_t* value) noexcept {
-        iter.log_value("false");
+        if (!tape.option) {
+            tape.count++;
+            return SUCCESS;
+        }  iter.log_value("false");
         if (!atomparsing::is_valid_false_atom(value)) { return F_ATOM_ERROR; }
         tape.append(internal::tape_type::FALSE_VALUE);
         return SUCCESS;
     }
 
     simdjson_warn_unused simdjson_really_inline error_code tape_builder::visit_root_false_atom(json_iterator& iter, const uint8_t* value) noexcept {
-        iter.log_value("false");
+        if (!tape.option) {
+            tape.count++;
+            return SUCCESS;
+        }iter.log_value("false");
         if (!atomparsing::is_valid_false_atom(value, iter.remaining_len())) { return F_ATOM_ERROR; }
         tape.append(internal::tape_type::FALSE_VALUE);
         return SUCCESS;
     }
 
     simdjson_warn_unused simdjson_really_inline error_code tape_builder::visit_null_atom(json_iterator& iter, const uint8_t* value) noexcept {
-        iter.log_value("null");
+        if (!tape.option) {
+            tape.count++;
+            return SUCCESS;
+        } iter.log_value("null");
         if (!atomparsing::is_valid_null_atom(value)) { return N_ATOM_ERROR; }
         tape.append(internal::tape_type::NULL_VALUE);
         return SUCCESS;
     }
 
     simdjson_warn_unused simdjson_really_inline error_code tape_builder::visit_root_null_atom(json_iterator& iter, const uint8_t* value) noexcept {
-        iter.log_value("null");
+        if (!tape.option) {
+            tape.count++;
+            return SUCCESS;
+        } iter.log_value("null");
         if (!atomparsing::is_valid_null_atom(value, iter.remaining_len())) { return N_ATOM_ERROR; }
         tape.append(internal::tape_type::NULL_VALUE);
         return SUCCESS;
@@ -244,14 +277,20 @@ namespace stage2 {
     }
 
     simdjson_warn_unused simdjson_really_inline error_code tape_builder::empty_container(json_iterator& iter, internal::tape_type start, internal::tape_type end) noexcept {
-        auto start_index = next_tape_index(iter);
+        if (!tape.option) {
+            tape.count++; tape.count++;
+            return SUCCESS;
+        }auto start_index = next_tape_index(iter);
         tape.append(start);
         tape.append(end);
         return SUCCESS;
     }
 
     simdjson_really_inline void tape_builder::start_container(json_iterator& iter, internal::tape_type start) noexcept {
-        iter.dom_parser.open_containers[iter.depth].tape_index = next_tape_index(iter);
+        if (!tape.option) {
+            tape.count++;
+            return;
+        }iter.dom_parser.open_containers[iter.depth].tape_index = next_tape_index(iter);
         iter.dom_parser.open_containers[iter.depth].count = 0;
 
         tape.append(start);
@@ -259,7 +298,10 @@ namespace stage2 {
     }
 
     simdjson_warn_unused simdjson_really_inline error_code tape_builder::end_container(json_iterator& iter, internal::tape_type start, internal::tape_type end) noexcept {
-        // Write the ending tape element, pointing at the start location
+        if (!tape.option) {
+            tape.count++;
+            return SUCCESS;
+        }// Write the ending tape element, pointing at the start location
         const uint32_t start_tape_index = iter.dom_parser.open_containers[iter.depth].tape_index;
         tape.append(end);
         return SUCCESS;
