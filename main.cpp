@@ -12,8 +12,9 @@
 #include <fstream>
 #include <set>
 
+
 namespace clau {
-	class UserType;
+	using STRING = std::string;
 
 	class Data {
 	public:
@@ -28,13 +29,13 @@ namespace clau {
 			unsigned long long uint_val;
 			double float_val;
 		};
-		std::string str_val;
-	//	size_t count_ut = 0, count_it = 0;
+		STRING str_val;
+		size_t count_ut = 0, count_it = 0;
 
 		Data() : type(simdjson::internal::tape_type::NONE), int_val(0) { }
 
-		Data(simdjson::internal::tape_type _type, long long _number_val, std::string&& _str_val) //, size_t count_ut, size_t count_it)
-			:type(_type), int_val(_number_val), str_val(std::move(_str_val))//, count_ut(count_ut), count_it(count_it)
+		Data(simdjson::internal::tape_type _type, long long _number_val, STRING&& _str_val, size_t count_ut, size_t count_it)
+			:type(_type), int_val(_number_val), str_val(std::move(_str_val)), count_ut(count_ut), count_it(count_it)
 		{
 
 		}
@@ -71,9 +72,9 @@ namespace clau {
 	inline Data Convert(const simdjson::Token& token) {
 		if (token.get_type() == simdjson::internal::tape_type::KEY_VALUE
 			|| token.get_type() == simdjson::internal::tape_type::STRING) {
-			return Data(token.get_type(), token.data.int_val, std::string(token.get_str())); // , token.data.count_ut, token.data.count_it);
+			return Data(token.get_type(), token.data.int_val, STRING(token.get_str()), token.data.count_ut, token.data.count_it);
 		}
-		return Data(token.get_type(), token.data.int_val, ""); // , token.data.count_ut, token.data.count_it);
+		return Data(token.get_type(), token.data.int_val, "", token.data.count_ut, token.data.count_it);
 	}
 
 	class UserType {
@@ -128,7 +129,7 @@ namespace clau {
 		}
 
 	private:
-		std::string get_name() const { return name.str_val; }
+		Data get_name() const { return name; }
 	
 		void LinkUserType(UserType* ut) // friend?
 		{
@@ -587,6 +588,7 @@ userTypeList.back()->type = type;
 		//		}
 		//	}
 
+
 			itemTypeList.push_back({std::move(name), std::move(data)});
 		}
 
@@ -798,7 +800,7 @@ userTypeList.back()->type = type;
 						token_arr[token_arr_start + i].get_type() == simdjson::internal::tape_type::START_ARRAY) { // object start, array start
 						
 						if (!varVec.empty()) {
-							nestedUT[braceNum]->reserve_item_type_list(nestedUT[braceNum]->item_type_list_size() + varVec.size());
+						//	nestedUT[braceNum]->reserve_item_type_list(nestedUT[braceNum]->item_type_list_size() + varVec.size());
 
 							for (size_t x = 0; x < varVec.size(); ++x) {
 								nestedUT[braceNum]->add_item_type(std::move(varVec[x]), std::move(valVec[x]));
@@ -812,9 +814,9 @@ userTypeList.back()->type = type;
 						class UserType* pTemp = nestedUT[braceNum]->get_user_type_list(nestedUT[braceNum]->find_last_user_type());
 						var = Data();
 						
-				//		pTemp->reserve_user_type_list(token_arr[token_arr_start + i].data.count_ut);
-				//		pTemp->reserve_item_type_list(token_arr[token_arr_start + i].data.count_it);
-
+						//
+						pTemp->reserve_item_type_list(token_arr[token_arr_start + i].data.count_it);
+						
 						braceNum++;
 
 						/// new nestedUT
@@ -852,7 +854,10 @@ userTypeList.back()->type = type;
 							temp.type = simdjson::internal::tape_type::KEY_VALUE;
 
 							ut.add_user_type(temp, token_arr[token_arr_start + i].get_type() == simdjson::internal::tape_type::END_OBJECT ? 2 : 3); // json -> "var_name" = val  // clautext, # is line comment delimiter.
+							
 							class UserType* pTemp = ut.get_user_type_list(ut.find_user_type(temp));
+
+							pTemp->reserve_item_type_list(token_arr[token_arr[token_arr_start + i].data.uint_val].data.count_it);
 
 							for (size_t i = 0; i < nestedUT[braceNum]->get_user_type_list_size(); ++i) {
 								ut.get_user_type_list(0)->add_user_type((nestedUT[braceNum]->get_user_type_list(i)));
@@ -930,7 +935,7 @@ userTypeList.back()->type = type;
 			if (state != last_state) {
 				*err = -2;
 				return false;
-				// throw std::string("error final state is not last_state!  : ") + toStr(state);
+				// throw STRING("error final state is not last_state!  : ") + toStr(state);
 			}
 
 			return true;
@@ -1150,8 +1155,8 @@ userTypeList.back()->type = type;
 			}
 
 			for (size_t i = 0; i < ut->get_user_type_list_size(); ++i) {
-				if (!ut->get_user_type_list(i)->get_name().empty()) {
-					stream << "\"" << (char*)ut->get_user_type_list(i)->get_name().c_str() << "\"";
+				if (!ut->get_user_type_list(i)->get_name().str_val.empty()) {
+					stream << "\"" << ut->get_user_type_list(i)->get_name().str_val << "\"";
 					if (ut->get_user_type_list(i)->is_object()) {
 						stream << " : { \n";
 					}
@@ -1193,10 +1198,12 @@ userTypeList.back()->type = type;
 
 int main(int argc, char* argv[])
 {
-	clau::UserType global;
+	
 	int a, b;
 	int start = clock();
 
+	clau::UserType global;
+	
 	{
 		size_t len = 0;
 		a = clock();
@@ -1204,7 +1211,7 @@ int main(int argc, char* argv[])
 		simdjson::dom::parser parser;
 
 		
-		auto tweets = parser.load(argv[1], true, 0);
+		auto tweets = parser.load(argv[1], false, 0);
 		if (tweets.error() != simdjson::error_code::SUCCESS) {
 			std::cout << tweets.error() << " ";
 			return 1;
@@ -1216,8 +1223,10 @@ int main(int argc, char* argv[])
 
 		std::cout << b - a << "ms\n";
 
-		/*
+		
 		std::cout << "len " << len << "\n";
+		a = clock();
+
 		tweets = parser.load(true, len);
 		
 		if (tweets.error() != simdjson::error_code::SUCCESS) {
@@ -1226,7 +1235,7 @@ int main(int argc, char* argv[])
 		}
 
 		len = parser.len();
-		*/
+		std::cout << len << "\n";
 		b = clock();
 
 		std::cout << b - a << "ms\n";
@@ -1235,10 +1244,10 @@ int main(int argc, char* argv[])
 		a = clock();
 
 		const std::unique_ptr<simdjson::Token[], simdjson::dom::Free>& token_arr = tweets.value().raw_tape();
-
-
-		clau::LoadData::parse(token_arr, len, global, 8);
-
+		
+		{
+			clau::LoadData::parse(token_arr, len, global, 8);
+		}
 	}
 
 	b = clock();
