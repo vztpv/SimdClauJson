@@ -92,7 +92,7 @@ namespace dom {
             case '"': // we have a string
                 os << "string \"";
                 std::memcpy(&string_length, string_buf.get() + payload, sizeof(uint32_t));
-                os << internal::escape_json_string(std::string_view(
+                os << internal::escape_json_string(STRING_view(
                     reinterpret_cast<const char*>(string_buf.get() + payload + sizeof(uint32_t)),
                     string_length
                 ));
