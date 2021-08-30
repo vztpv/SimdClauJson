@@ -21,5 +21,4 @@ Need to add, remove, update data easily.
 using std::string, std::vector.
 
 # Now Has Problem..
-need many? memory...
 need more tests.
