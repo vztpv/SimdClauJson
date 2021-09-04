@@ -32,6 +32,16 @@ namespace clau {
 		STRING str_val;
 		size_t count_ut = 0, count_it = 0;
 
+		Data(const Data& other) 
+		: type(other.type), int_val(other.int_val), str_val(other.str_val), count_ut(other.count_ut), count_it(other.count_it) {
+
+		}
+
+		Data(Data&& other)
+			: type(other.type), int_val(other.int_val), str_val(std::move(other.str_val)), count_ut(other.count_ut), count_it(other.count_it) {
+
+		}
+
 		Data() : type(simdjson::internal::tape_type::NONE), int_val(0) { }
 
 		Data(simdjson::internal::tape_type _type, long long _number_val, STRING&& _str_val, size_t count_ut, size_t count_it)
@@ -44,8 +54,6 @@ namespace clau {
 			if (this->type == other.type) {
 				switch (this->type) {
 				case simdjson::internal::tape_type::KEY_VALUE:
-					return this->str_val == other.str_val;
-					break;
 				case simdjson::internal::tape_type::STRING:
 					return this->str_val == other.str_val;
 					break;
@@ -58,14 +66,41 @@ namespace clau {
 			if (this->type == other.type) {
 				switch (this->type) {
 				case simdjson::internal::tape_type::KEY_VALUE:
-					return this->str_val < other.str_val;
-					break;
 				case simdjson::internal::tape_type::STRING:
 					return this->str_val < other.str_val;
 					break;
 				}
 			}
 			return false;
+		}
+
+		Data& operator=(const Data& other) {
+			if (this == &other) {
+				return *this;
+			}
+
+			this->type = other.type;
+			this->int_val = other.int_val;
+			this->str_val = other.str_val;
+			this->count_it = other.count_it;
+			this->count_ut = other.count_ut;
+
+			return *this;
+		}
+
+
+		Data& operator=(Data&& other) {
+			if (this == &other) {
+				return *this;
+			}
+
+			this->type = other.type;
+			this->int_val = other.int_val;
+			this->str_val = std::move(other.str_val);
+			this->count_it = other.count_it;
+			this->count_ut = other.count_ut;
+
+			return *this;
 		}
 	};
 
@@ -1024,9 +1059,38 @@ namespace clau {
 }
 
 
+//#include "nlohmann/json.hpp"
+
 int main(int argc, char* argv[])
 {
 	
+	{
+		//int a, b;
+		//a = clock();
+		//char* str;
+		//int length;
+
+		//FILE* file;
+
+		///fopen_s(&file, argv[1], "rb");
+		//fseek(file, 0, SEEK_END);
+		//length = ftell(file);
+		//fclose(file);
+
+		//fopen_s(&file, argv[1], "rb");
+		//str = new char[length + 1];
+
+		//fread(str, sizeof(char), length, file);
+		//fclose(file);
+		//str[length] = '\0';
+
+		//auto x = nlohmann::json::parse(str);
+		
+		//b = clock();
+		//std::cout << b - a << "ms\n";
+		//std::cout << x.is_object() << "\n";
+	}
+
 	int a, b;
 	int start = clock();
 
@@ -1082,7 +1146,7 @@ int main(int argc, char* argv[])
 
 	std::cout << b - start << "ms\n";
 
-	clau::LoadData::save("output.test", global);
+//	clau::LoadData::save("output.test", global);
 
 
 	return 0;
