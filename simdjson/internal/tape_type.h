@@ -20,7 +20,10 @@ enum class tape_type {
     TRUE_VALUE,
     FALSE_VALUE,
     NULL_VALUE,
-    KEY_VALUE //
+    KEY_VALUE,
+    COMMA,
+    COLON
+    //
 }; // enum class tape_type
 
 } // namespace internal
@@ -36,15 +39,19 @@ public:
         size_t str_len;
     };
     const char* str_ptr = nullptr;
+  //  std::string str_val;
     long long count_ut = 0, count_it = 0;
 
 public:
     void set_str(const char* str, size_t len) {
         str_len = len;
         str_ptr = str;
+      //  str_val = std::string(str, len);
     }
 
     std::string_view get_str() const {
+       // return str_val;
+
         return std::string_view(str_ptr, str_len);
     }
 };
@@ -72,7 +79,6 @@ public:
 
     std::string_view get_str() const {
         return data.get_str();
-
     }
 };
 

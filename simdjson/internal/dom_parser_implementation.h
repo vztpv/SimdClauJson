@@ -22,6 +22,7 @@ namespace internal {
 class dom_parser_implementation {
 public:
     bool option;
+    int thr_num;
   /**
    * @private For internal implementation use
    *
