@@ -423,8 +423,14 @@ inline std::ostream& operator<<(std::ostream& out, element_type type) {
 }
 
 inline const std::unique_ptr<Token[], Free>& element::raw_tape() const noexcept {
+    
     return tape.doc->tape;
 }
+
+//
+//inline const std::unique_ptr<uint8_t[]>& element::raw_buffer() const noexcept {
+ //   return tape.doc->string_buf;
+//}
 
 } // namespace dom
 

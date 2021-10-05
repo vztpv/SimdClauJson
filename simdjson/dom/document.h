@@ -17,6 +17,8 @@ class Free {
 	 }
  };
 
+
+
 /**
  * A parsed JSON document.
  *
@@ -26,6 +28,22 @@ class Free {
  class document {
  public:
 	 size_t len;
+	 std::vector<size_t> len2;
+
+     std::vector<int64_t> split; 
+	 int no = -1;
+	 int64_t count;
+	 
+	 // for parse2?
+	 int64_t start;
+	 int64_t length;
+	 int state = 0;
+	 //
+	 long long ut_count = 0;
+
+	 document* ori_doc = nullptr;
+
+
 	 /**
 	  * Create a document container with zero capacity.
 	  *
@@ -67,13 +85,14 @@ class Free {
 
 
 	 /** @private Structural values. */
-	 std::unique_ptr < Token[], Free > tape;
+	 std::unique_ptr < Token[], Free > tape; // Free calls free()
 
 	 /** @private String values.
 	  *
 	  * Should be at least byte_capacity.
 	  */
 	 std::unique_ptr<uint8_t[]> string_buf{};
+
 	 /** @private Allocate memory to support
 	  * input JSON documents of up to len bytes.
 	  *
@@ -99,5 +118,8 @@ class Free {
  }; // class document
 } // namespace dom
 } // namespace simdjson
+
+
+
 
 #endif // SIMDJSON_DOM_DOCUMENT_H

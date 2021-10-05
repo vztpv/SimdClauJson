@@ -58,8 +58,29 @@ static constexpr size_t MINIMAL_DOCUMENT_CAPACITY = 32;
 class parser {
 public:
 
+	int thr_num;
+
 	size_t len() const noexcept {
 		return this->doc.len;
+	}
+	
+	std::vector<size_t> len2() const noexcept {
+		return this->doc.len2;
+	}
+	size_t len(int no) const noexcept {
+		return this->docs[no].len;
+	}
+
+	std::vector<int64_t> split() const noexcept {
+		return this->doc.split;
+	}
+
+	int64_t count() const noexcept {
+		return this->doc.count;
+	}
+
+	long long ut_count(int no) const noexcept {
+		return this->docs[no].ut_count;
 	}
 
 	/**
@@ -129,7 +150,7 @@ public:
 	inline simdjson_result<element> load(const std::string& path, bool opton, size_t reserve_capacity) & noexcept;
 	inline simdjson_result<element> load(const std::string& path) && = delete;
 
-	inline simdjson_result<element> load(bool opton, size_t reserve_capacity) & noexcept;
+	inline simdjson_result<element> load(bool opton, size_t reserve_capacity, int64_t start, int no) & noexcept;
 
 
 	/**
@@ -204,7 +225,7 @@ public:
 	simdjson_really_inline simdjson_result<element> parse(const char* buf, size_t len, bool realloc_if_needed = true) && = delete;
 
 
-	simdjson_really_inline simdjson_result<element> parse(bool option = false, size_t reserve_capacity = 0) & noexcept;
+	simdjson_really_inline simdjson_result<element> parse(bool option, size_t reserve_capacity, int64_t start, int no) & noexcept;
 
 
 	/** @overload parse(const uint8_t *buf, size_t len, bool realloc_if_needed) */
@@ -547,6 +568,7 @@ public:
 
 	/** @private Use `parser.parse(...).value()` instead */
 	document doc{};
+	std::vector<document> docs;
 
 	/** @private returns true if the document parsed was valid */
 	[[deprecated("Use the result of parser.parse() instead")]]
@@ -626,5 +648,6 @@ private:
 
 } // namespace dom
 } // namespace simdjson
+
 
 #endif // SIMDJSON_DOM_PARSER_H

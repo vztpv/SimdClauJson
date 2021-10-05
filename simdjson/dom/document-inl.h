@@ -18,7 +18,7 @@ namespace dom {
     // document inline implementation
     //
     inline element document::root() const noexcept {
-        return element(internal::tape_ref(this, 1));
+        return element(internal::tape_ref(this, 1)); // 1?
     }
     simdjson_warn_unused
         inline size_t document::capacity() const noexcept {
@@ -28,7 +28,7 @@ namespace dom {
     simdjson_warn_unused
         inline error_code document::allocate(size_t capacity, bool option, size_t reserve_capacity) noexcept {
         if (capacity == 0) {
-            string_buf.reset();
+            //string_buf.reset();
             tape.reset();
             allocated_capacity = 0;
             return SUCCESS;
@@ -50,13 +50,13 @@ namespace dom {
         // a document with only zero-length strings... could have capacity/3 string
         // and we would need capacity/3 * 5 bytes on the string buffer
         size_t string_capacity = SIMDJSON_ROUNDUP_N(5 * capacity / 3 + SIMDJSON_PADDING, 64);
-        string_buf.reset(new (std::nothrow) uint8_t[string_capacity]);
+        //string_buf.reset(new (std::nothrow) uint8_t[capacity]);
         tape.reset((Token*)calloc(tape_capacity, sizeof(Token))); //tape.reset(new (std::nothrow)Token[tape_capacity]);
         
         
-        if (!(string_buf && tape)) {
+        if (!tape) { // if (!(string_buf && tape)) {
             allocated_capacity = 0;
-            string_buf.reset();
+           // string_buf.reset();
             tape.reset();
             return MEMALLOC;
         }

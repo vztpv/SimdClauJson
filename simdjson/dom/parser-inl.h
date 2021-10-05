@@ -87,8 +87,8 @@ inline simdjson_result<element> parser::load(const std::string & path, bool opti
     return parse(loaded_bytes.get(), len, false, option, reserve_capacity);
 }
 
-inline simdjson_result<element> parser::load(bool option, size_t reserve_capacity) & noexcept {
-    return parse(option, reserve_capacity);
+inline simdjson_result<element> parser::load(bool option, size_t reserve_capacity, int64_t start, int no) & noexcept {
+    return parse(option, reserve_capacity, start, no);
 }
 
 /*
@@ -113,7 +113,8 @@ inline simdjson_result<element> parser::parse_into_document(document & provided_
         std::memcpy(static_cast<void*>(tmp_buf.get()), buf, len);
     }
 
-    implementation->option = option; //
+    implementation->option = option; 
+    implementation->thr_num = this->thr_num;
 
     _error = implementation->parse(realloc_if_needed ? tmp_buf.get() : buf, len, provided_doc);
 
@@ -127,6 +128,8 @@ inline simdjson_result<element> parser::parse_into_document(document & provided_
 inline simdjson_result<element> parser::parse_into_document(document& provided_doc, bool option, size_t reserve_capacity) & noexcept {
 
     implementation->option = option; //
+    implementation->thr_num = this->thr_num;
+
 
     provided_doc.tape.reset((Token*)calloc(reserve_capacity, sizeof(Token)));
 
@@ -157,12 +160,14 @@ simdjson_really_inline simdjson_result<element> parser::parse(const char* buf, s
     return parse(reinterpret_cast<const uint8_t*>(buf), len, realloc_if_needed, option, reserve_capacity);
 }
 
-simdjson_really_inline simdjson_result<element> parser::parse(bool option, size_t reserve_capacity) & noexcept {
-    return parse_into_document(doc, option, reserve_capacity);
+simdjson_really_inline simdjson_result<element> parser::parse(bool option, size_t reserve_capacity, int64_t start, int no) & noexcept {
+    docs[no].start = start;
+    docs[no].length = reserve_capacity;
+    return parse_into_document(docs[no], option, reserve_capacity);
 }
 
 simdjson_really_inline simdjson_result<element> parser::parse(const std::string & s) & noexcept {
-    return parse(s.data(), s.length(), s.capacity() - s.length() < SIMDJSON_PADDING);
+    return parse(s.data(), s.length(), s.capacity() - s.length() < SIMDJSON_PADDING, true);
 }
 simdjson_really_inline simdjson_result<element> parser::parse(const padded_string & s) & noexcept {
     return parse(s.data(), s.length(), false);

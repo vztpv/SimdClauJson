@@ -463,6 +463,7 @@ public:
     /** @private for debugging. Prints out the root element. */
     inline bool dump_raw_tape(std::ostream& out) const noexcept;
     inline const std::unique_ptr<Token[], Free>& raw_tape() const  noexcept;
+    inline const std::unique_ptr<uint8_t[]>& raw_buffer() const noexcept;
 private:
     simdjson_really_inline element(const internal::tape_ref& tape) noexcept;
     internal::tape_ref tape;
