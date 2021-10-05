@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
 		//std::vector<clau2::MemoryPool> pool;
 
 		//if (SimdClauJson2::Parse(argv[1], &node, pool, 8) < 0) {
-			return -1;
+		//	return -1;
 		//}
 	}
 	b = clock();
