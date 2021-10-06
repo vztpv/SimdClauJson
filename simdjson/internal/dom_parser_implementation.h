@@ -23,6 +23,8 @@ class dom_parser_implementation {
 public:
     bool option;
     int thr_num;
+    int first;
+
   /**
    * @private For internal implementation use
    *
