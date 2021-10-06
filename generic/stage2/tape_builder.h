@@ -150,14 +150,14 @@ namespace stage2 {
                     char now = *iter.peek();
 
                     if (now == ':') {
-                        doc.split[i] += 2;
+                        doc.split[i] += 1;
                     }
 
                     if (i < doc.split.size() - 1) {
                         iter.advance();
                         char next = *iter.peek();
                         if (next == ':') {
-                            doc.split[i] += 3;
+                            doc.split[i] += 2;
                         }
                     }
                 }
