@@ -60,6 +60,8 @@ public:
 
 	int thr_num;
 
+	int first;
+
 	size_t len() const noexcept {
 		return this->doc.len;
 	}

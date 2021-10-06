@@ -129,7 +129,7 @@ inline simdjson_result<element> parser::parse_into_document(document& provided_d
 
     implementation->option = option; //
     implementation->thr_num = this->thr_num;
-
+    implementation->first = this->first;
 
     provided_doc.tape.reset((Token*)calloc(reserve_capacity, sizeof(Token)));
 
