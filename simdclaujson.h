@@ -1242,6 +1242,11 @@ namespace clau {
 
 			}
 		
+
+			if (ut->get_data2_size() > 0 && ut->get_data_size() > 0) {
+				stream << ",\n";
+			}
+
 			for (size_t i = 0; i < ut->get_data_size(); ++i) {
 
 				if (ut->is_object()) {
