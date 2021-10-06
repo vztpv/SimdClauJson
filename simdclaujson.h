@@ -406,11 +406,11 @@ namespace clau {
 			order.push_back(ArrayOrObject);
 		}
 
-		void reserve_data_list(size_t len) {
+		 void reserve_data_list(size_t len) {
 			data.reserve(len);
 		}
 
-		void reserve_data2_list(size_t len) {
+		 void reserve_data2_list(size_t len) {
 			data2.reserve(len);
 		}
 
@@ -491,7 +491,7 @@ namespace clau {
 		}
 
 		// add item_type in object? key = value
-		void add_item_type(Data&& name, clau::Data&& data) {
+		 void add_item_type(Data&& name, clau::Data&& data) {
 			// todo - chk this->type == 0 (object) but name is empty
 			// todo - chk this->type == 1 (array) but name is not empty.
 
@@ -1169,10 +1169,49 @@ namespace clau {
 
 		static void _save(std::ostream& stream, UserType* ut, const int depth = 0) {
 			for (size_t i = 0; i < ut->get_data2_size(); ++i) {
-				const auto& x = ut->get_data2_list(i);
+				auto& x = ut->get_data2_list(i);
 
-				if (x.type == simdjson::internal::tape_type::KEY_VALUE) {
-					stream << "\"" << x.str_val << "\" : ";
+				if (x.type == simdjson::internal::tape_type::KEY_VALUE || 
+					x.type == simdjson::internal::tape_type::STRING) {
+					stream << "\"";
+					for (long long j = 0; j < x.str_val.size(); ++j) {
+						switch (x.str_val[j]) {
+						case '\\':
+							stream << "\\\\";
+							break;
+						case '\"':
+							stream << "\\\"";
+							break;
+						case '\n':
+							stream << "\\n";
+							break;
+
+						default:
+							if (isprint(x.str_val[j]))
+							{
+								stream << x.str_val[j];
+							}
+							else
+							{
+								int code = x.str_val[j];
+								if (code > 0 && (code < 0x20 || code == 0x7F))
+								{
+									char buf[] = "\\uDDDD";
+									sprintf(buf + 2, "%04X", code);
+									stream << buf;
+								}
+								else {
+									stream << x.str_val[j];
+								}
+							}
+						}
+					}
+					
+					stream << "\"";
+						
+					if (x.type == simdjson::internal::tape_type::KEY_VALUE) {
+						stream << " : ";
+					}
 				}
 				else if (x.type == simdjson::internal::tape_type::TRUE_VALUE) {
 					stream << "true";
@@ -1192,11 +1231,12 @@ namespace clau {
 				else if (x.type == simdjson::internal::tape_type::NULL_VALUE) {
 					stream << "null ";
 				}
-				else if (x.type == simdjson::internal::tape_type::STRING) {
-					stream << "\"" << x.str_val << "\"";
-				}
-				if (i < ut->get_data2_size() - 1) {
+
+				if (ut->is_array() && i < ut->get_data2_size() - 1) {
 					stream << ",";
+				}
+				else if (ut->is_object() && i % 2 == 1 && i < ut->get_data2_size() - 1) {
+					stream <<  ",";
 				}
 				stream << " ";
 
@@ -1357,12 +1397,18 @@ namespace clau {
 
 			try {
 				std::vector<std::thread*> thr(parser.thr_num);
+				bool first = true;
 
 				for (int i = 0; i < parser.thr_num; ++i) {
 					_Parse temp;
 					temp.parser = &parser;
-
+					
 					if (length[i] > 0) {
+						if (first) {
+							temp.parser->first = i;
+							first = false;
+						}
+
 						thr[i] = new std::thread(temp, true, length[i], start[i], i, &tweets[i]);
 						chk[i] = true;
 					}
@@ -1406,7 +1452,7 @@ namespace clau {
 			std::cout << b - a << "ms\n";
 
 
-			a = clock();
+			//a = clock();
 
 			{
 				/*
