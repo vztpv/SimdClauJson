@@ -115,6 +115,7 @@ inline simdjson_result<element> parser::parse_into_document(document & provided_
 
     implementation->option = option; 
     implementation->thr_num = this->thr_num;
+    implementation->docs = std::vector<document*>(this->thr_num, nullptr);
 
     _error = implementation->parse(realloc_if_needed ? tmp_buf.get() : buf, len, provided_doc);
 
