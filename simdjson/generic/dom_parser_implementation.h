@@ -22,8 +22,6 @@ public:
   size_t len{0};
   /** Document passed to stage 2 */
   //dom::document *doc{};
-  std::vector<dom::document*> docs{ 8, nullptr };
-  dom::document* doc;
   
 
   inline dom_parser_implementation() noexcept;
