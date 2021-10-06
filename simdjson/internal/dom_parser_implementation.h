@@ -4,6 +4,7 @@
 #include "simdjson/common_defs.h"
 #include "simdjson/error.h"
 #include <memory>
+#include <vector>
 
 namespace simdjson {
 
@@ -25,6 +26,8 @@ public:
     int thr_num;
     int first;
 
+    std::vector<dom::document*> docs;
+    dom::document* doc;
   /**
    * @private For internal implementation use
    *
