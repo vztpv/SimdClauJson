@@ -24,6 +24,7 @@ public:
   //dom::document *doc{};
   std::vector<dom::document*> docs{ 8, nullptr };
   dom::document* doc;
+  
 
   inline dom_parser_implementation() noexcept;
   inline dom_parser_implementation(dom_parser_implementation &&other) noexcept;
