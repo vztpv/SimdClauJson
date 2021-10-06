@@ -18,6 +18,8 @@ public:
 
   size_t ut_count = 0;
 
+  int first;
+
   /**
    * Walk the JSON document.
    *
@@ -284,20 +286,27 @@ simdjson_warn_unused simdjson_really_inline error_code json_iterator::walk_docum
                 SIMDJSON_TRY(visitor.visit_key(*this, value));
             }
             else {
-                SIMDJSON_TRY(visitor.visit_string(*this, value));
+                if (this->first == this->no && i == 0) {
+                    SIMDJSON_TRY(visitor.visit_root_string(*this, value));
+                }
+                else {
+                    SIMDJSON_TRY(visitor.visit_string(*this, value));
+                }
             }
             break;
         case ':':
             SIMDJSON_TRY(visitor.visit_colon(*this));
-          //  --i;
             break;
         case ',':
             SIMDJSON_TRY(visitor.visit_comma(*this));
-          //  --i;
             break;
         default: // true, false, null, number. ...
-            //std::cout << *value << "\n";
-            SIMDJSON_TRY(visitor.visit_primitive(*this, value));
+            if (this->first == this->no && i == 0) {
+                SIMDJSON_TRY(visitor.visit_root_primitive(*this, value));
+            }
+            else {
+                SIMDJSON_TRY(visitor.visit_primitive(*this, value));
+            }
             break;
         }
     }

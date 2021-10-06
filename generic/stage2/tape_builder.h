@@ -105,6 +105,7 @@ namespace stage2 {
         }
 
         json_iterator iter(dom_parser, STREAMING ? dom_parser.next_structural_index : doc.start);
+        iter.first = dom_parser.first;
 
         if (doc.ori_doc) {
             iter.no = doc.no;
