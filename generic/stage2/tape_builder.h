@@ -526,5 +526,3 @@ namespace stage2 {
 } // namespace simdjson
 
 
-#include "../../simdclaujson.h"
-
