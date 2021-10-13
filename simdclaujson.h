@@ -33,7 +33,7 @@ namespace clau {
 			: type(other.type), int_val(other.int_val), str_val(other.str_val), count_ut(other.count_ut), count_it(other.count_it) {
 
 		}
-
+	
 		Data(Data&& other)
 			: type(other.type), int_val(other.int_val), str_val(std::move(other.str_val)), count_ut(other.count_ut), count_it(other.count_it) {
 
@@ -141,7 +141,7 @@ namespace clau {
 			for (auto x : this->data) {
 				temp->data.push_back(x->clone());
 			}
-			for (auto x : this->data2) {
+			for (auto& x : this->data2) {
 				temp->data2.push_back(x);
 			}
 
@@ -217,7 +217,7 @@ namespace clau {
 			return *this;
 		}
 		*/
-		Data get_name() const { return name; }
+		const Data& get_name() const { return name; }
 
 
 	private:
@@ -227,7 +227,7 @@ namespace clau {
 
 			ut->parent = this;
 
-			if (ut->is_array()) {
+			if (this->is_array()) {
 				this->order.push_back(ArrayOrObject);
 			}
 		}
@@ -1284,6 +1284,14 @@ namespace clau {
 			else {
 				size_t ut_count = 0;
 				size_t it_count = 0;
+
+
+				if (ut->get_order_size() == ut->get_data_size() + ut->get_data2_size()) {
+					//
+				}
+				else {
+					std::cout << "bug...";
+				}
 
 				for (size_t i = 0; i < ut->get_order_size(); ++i) {
 					if (ut->is_item(i)) {
