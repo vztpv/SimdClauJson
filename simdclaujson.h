@@ -1,7 +1,7 @@
 #pragma once
 
 #include <iostream>
-#include "simdjson.h" // modified simdjson
+#include "simdjson.h" // modified simdjson 0.9.7
 
 #include <map>
 #include <vector>
@@ -226,6 +226,10 @@ namespace clau {
 			data.push_back(ut);
 
 			ut->parent = this;
+
+			if (ut->is_array()) {
+				this->order.push_back(ArrayOrObject);
+			}
 		}
 	private:
 		UserType(clau::Data&& name, int type = -1) : name(std::move(name)), type(type)
@@ -1013,7 +1017,7 @@ namespace clau {
 					}
 
 					for (size_t i = 1; i < pivots.size(); ++i) {
-						int64_t _token_arr_len = pivots[i] - (pivots[i - 1] + 1) + 1;
+					//	int64_t _token_arr_len = pivots[i] - (pivots[i - 1] + 1) + 1;
 
 						thr[i] = std::thread(__LoadData, (token_arr[i]), 0, length[i], &__global[i], 0, 0, &next[i], &err[i], i);
 					}
@@ -1167,113 +1171,211 @@ namespace clau {
 			return LoadData::_LoadData(tokens, length, global, thr_num, thr_num);
 		}
 
+
+		//
 		static void _save(std::ostream& stream, UserType* ut, const int depth = 0) {
-			for (size_t i = 0; i < ut->get_data2_size(); ++i) {
-				auto& x = ut->get_data2_list(i);
+			if (!ut->is_array()) {
+				for (size_t i = 0; i < ut->get_data2_size(); ++i) {
+					auto& x = ut->get_data2_list(i);
 
-				if (x.type == simdjson::internal::tape_type::KEY_VALUE || 
-					x.type == simdjson::internal::tape_type::STRING) {
-					stream << "\"";
-					for (long long j = 0; j < x.str_val.size(); ++j) {
-						switch (x.str_val[j]) {
-						case '\\':
-							stream << "\\\\";
-							break;
-						case '\"':
-							stream << "\\\"";
-							break;
-						case '\n':
-							stream << "\\n";
-							break;
+					if (x.type == simdjson::internal::tape_type::KEY_VALUE ||
+						x.type == simdjson::internal::tape_type::STRING) {
+						stream << "\"";
+						for (long long j = 0; j < x.str_val.size(); ++j) {
+							switch (x.str_val[j]) {
+							case '\\':
+								stream << "\\\\";
+								break;
+							case '\"':
+								stream << "\\\"";
+								break;
+							case '\n':
+								stream << "\\n";
+								break;
 
-						default:
-							if (isprint(x.str_val[j]))
-							{
-								stream << x.str_val[j];
-							}
-							else
-							{
-								int code = x.str_val[j];
-								if (code > 0 && (code < 0x20 || code == 0x7F))
+							default:
+								if (isprint(x.str_val[j]))
 								{
-									char buf[] = "\\uDDDD";
-									sprintf(buf + 2, "%04X", code);
-									stream << buf;
-								}
-								else {
 									stream << x.str_val[j];
+								}
+								else
+								{
+									int code = x.str_val[j];
+									if (code > 0 && (code < 0x20 || code == 0x7F))
+									{
+										char buf[] = "\\uDDDD";
+										sprintf(buf + 2, "%04X", code);
+										stream << buf;
+									}
+									else {
+										stream << x.str_val[j];
+									}
 								}
 							}
 						}
+
+						stream << "\"";
+
+						if (x.type == simdjson::internal::tape_type::KEY_VALUE) {
+							stream << " : ";
+						}
 					}
-					
-					stream << "\"";
-						
-					if (x.type == simdjson::internal::tape_type::KEY_VALUE) {
-						stream << " : ";
+					else if (x.type == simdjson::internal::tape_type::TRUE_VALUE) {
+						stream << "true";
 					}
-				}
-				else if (x.type == simdjson::internal::tape_type::TRUE_VALUE) {
-					stream << "true";
-				}
-				else if (x.type == simdjson::internal::tape_type::FALSE_VALUE) {
-					stream << "false";
-				}
-				else if (x.type == simdjson::internal::tape_type::DOUBLE) {
-					stream << (x.float_val);
-				}
-				else if (x.type == simdjson::internal::tape_type::INT64) {
-					stream << x.int_val;
-				}
-				else if (x.type == simdjson::internal::tape_type::UINT64) {
-					stream << x.uint_val;
-				}
-				else if (x.type == simdjson::internal::tape_type::NULL_VALUE) {
-					stream << "null ";
+					else if (x.type == simdjson::internal::tape_type::FALSE_VALUE) {
+						stream << "false";
+					}
+					else if (x.type == simdjson::internal::tape_type::DOUBLE) {
+						stream << (x.float_val);
+					}
+					else if (x.type == simdjson::internal::tape_type::INT64) {
+						stream << x.int_val;
+					}
+					else if (x.type == simdjson::internal::tape_type::UINT64) {
+						stream << x.uint_val;
+					}
+					else if (x.type == simdjson::internal::tape_type::NULL_VALUE) {
+						stream << "null ";
+					}
+
+					if (ut->is_object() && i % 2 == 1 && i < ut->get_data2_size() - 1) {
+						stream << ",";
+					}
+					stream << " ";
+
 				}
 
-				if (ut->is_array() && i < ut->get_data2_size() - 1) {
-					stream << ",";
-				}
-				else if (ut->is_object() && i % 2 == 1 && i < ut->get_data2_size() - 1) {
-					stream <<  ",";
-				}
-				stream << " ";
 
-			}
-		
-
-			if (ut->get_data2_size() > 0 && ut->get_data_size() > 0) {
-				stream << ",\n";
-			}
-
-			for (size_t i = 0; i < ut->get_data_size(); ++i) {
-
-				if (ut->is_object()) {
-					stream << "\"" << ut->get_data_list(i)->get_name().str_val << "\" : ";
+				if (ut->get_data2_size() > 0 && ut->get_data_size() > 0) {
+					stream << ",\n";
 				}
 
-				{ // ut is array
+				for (size_t i = 0; i < ut->get_data_size(); ++i) {
+
+					if (ut->is_object()) {
+						stream << "\"" << ut->get_data_list(i)->get_name().str_val << "\" : ";
+					}
+
+					{ // ut is array
+						if (((UserType*)ut->get_data_list(i))->is_object()) {
+							stream << " { \n";
+						}
+						else {
+							stream << " [ \n";
+						}
+					}
+
+					_save(stream, (UserType*)ut->get_data_list(i), depth + 1);
+
 					if (((UserType*)ut->get_data_list(i))->is_object()) {
-						stream << " { \n";
+						stream << " } \n";
 					}
 					else {
-						stream << " [ \n";
+						stream << " ] \n";
+					}
+
+
+					if (i < ut->get_data_size() - 1) {
+						stream << ",";
 					}
 				}
+			}
+			else {
+				size_t ut_count = 0;
+				size_t it_count = 0;
 
-				_save(stream, (UserType*)ut->get_data_list(i), depth + 1);
+				for (size_t i = 0; i < ut->get_order_size(); ++i) {
+					if (ut->is_item(i)) {
+						auto& x = ut->get_data2_list(it_count); it_count++;
 
-				if (((UserType*)ut->get_data_list(i))->is_object()) {
-					stream << " } \n";
-				}
-				else {
-					stream << " ] \n";
-				}
+						if (x.type == simdjson::internal::tape_type::KEY_VALUE ||
+							x.type == simdjson::internal::tape_type::STRING) {
+							stream << "\"";
+							for (long long j = 0; j < x.str_val.size(); ++j) {
+								switch (x.str_val[j]) {
+								case '\\':
+									stream << "\\\\";
+									break;
+								case '\"':
+									stream << "\\\"";
+									break;
+								case '\n':
+									stream << "\\n";
+									break;
 
+								default:
+									if (isprint(x.str_val[j]))
+									{
+										stream << x.str_val[j];
+									}
+									else
+									{
+										int code = x.str_val[j];
+										if (code > 0 && (code < 0x20 || code == 0x7F))
+										{
+											char buf[] = "\\uDDDD";
+											sprintf(buf + 2, "%04X", code);
+											stream << buf;
+										}
+										else {
+											stream << x.str_val[j];
+										}
+									}
+								}
+							}
 
-				if (i < ut->get_data_size() - 1) {
-					stream << ",";
+							stream << "\"";
+
+							if (x.type == simdjson::internal::tape_type::KEY_VALUE) {
+								stream << " : ";
+							}
+						}
+						else if (x.type == simdjson::internal::tape_type::TRUE_VALUE) {
+							stream << "true";
+						}
+						else if (x.type == simdjson::internal::tape_type::FALSE_VALUE) {
+							stream << "false";
+						}
+						else if (x.type == simdjson::internal::tape_type::DOUBLE) {
+							stream << (x.float_val);
+						}
+						else if (x.type == simdjson::internal::tape_type::INT64) {
+							stream << x.int_val;
+						}
+						else if (x.type == simdjson::internal::tape_type::UINT64) {
+							stream << x.uint_val;
+						}
+						else if (x.type == simdjson::internal::tape_type::NULL_VALUE) {
+							stream << "null ";
+						}
+					}
+					else if (ut->is_array_or_object(i)) {
+
+						{ // ut is array
+							if (((UserType*)ut->get_data_list(ut_count))->is_object()) {
+								stream << " { \n";
+							}
+							else {
+								stream << " [ \n";
+							}
+						}
+
+						_save(stream, (UserType*)ut->get_data_list(ut_count), depth + 1);
+
+						if (((UserType*)ut->get_data_list(ut_count))->is_object()) {
+							stream << " } \n";
+						}
+						else {
+							stream << " ] \n";
+						}
+
+						ut_count++;
+					}
+
+					if (i < ut->get_order_size() - 1) {
+						stream << ",";
+					}
 				}
 			}
 		}
@@ -1382,7 +1484,9 @@ namespace clau {
 			for (int i = 0; i < start.size() - 1; ++i) {
 				length[i] = start[i + 1] - start[i]; //  + 1] - len2[i];
 
-				//std::cout << "length " << length[i] << " ";
+			//	std::cout << "start " << start[i] << " ";
+			//	std::cout << "length " << length[i] << " ";
+			//	std::cout << "\n";
 			}
 
 			size_t sum = 0;
@@ -1441,6 +1545,7 @@ namespace clau {
 					}
 					//	std::cout << "start " << start[i] << " ";
 					//	std::cout << length[i] << " " << Len[i] << "\n";
+
 				}
 			}
 			catch (simdjson::simdjson_error e) {
